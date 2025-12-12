@@ -75,6 +75,13 @@ const MachinePage: React.FC = () => {
         },
       ],
     },
+    {
+      id: 3,
+      name: "New Machine",
+      type: "H",
+      timestamp: "2025-12-12T11:00:00Z",
+      diagnostics: [],
+    },
   ]);
 
   // Add Machine Form
@@ -262,16 +269,22 @@ type MachineCardProps = {
 
 const MachineCard: React.FC<MachineCardProps> = ({ machine, onDetail, onEdit, onDelete }) => {
   const latestDiagnostic = machine.diagnostics?.[0];
+  const hasDiagnostics = !!latestDiagnostic;
+  
   const riskScore = latestDiagnostic?.risk_score ?? 0;
-  const health = riskScore < 0.3 ? "Healthy" : riskScore < 0.7 ? "Warning" : "Critical";
-  const performance = Math.round((1 - riskScore) * 100);
+  const health = hasDiagnostics 
+    ? (riskScore < 0.3 ? "Healthy" : riskScore < 0.7 ? "Warning" : "Critical")
+    : "No Data";
+  const performance = hasDiagnostics ? Math.round((1 - riskScore) * 100) : null;
 
   const healthColor =
     health === "Healthy"
       ? "bg-green-100 text-green-700"
       : health === "Warning"
       ? "bg-yellow-100 text-yellow-700"
-      : "bg-red-100 text-red-700";
+      : health === "Critical"
+      ? "bg-red-100 text-red-700"
+      : "bg-gray-100 text-gray-700";
 
   return (
     <div className="bg-white p-5 rounded-2xl shadow hover:shadow-md transition">
@@ -297,20 +310,33 @@ const MachineCard: React.FC<MachineCardProps> = ({ machine, onDetail, onEdit, on
       <div className="mt-4">
         <div className="flex justify-between text-sm mb-1">
           <span className="text-gray-700">Performance</span>
-          <span className="font-semibold">{performance}%</span>
+          <span className="font-semibold">
+            {performance !== null ? `${performance}%` : "N/A"}
+          </span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div
-            className="h-2 bg-blue-600 rounded-full"
-            style={{ width: `${performance}%` }}
-          />
-        </div>
+        {performance !== null ? (
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div
+              className="h-2 bg-blue-600 rounded-full"
+              style={{ width: `${performance}%` }}
+            />
+          </div>
+        ) : (
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="h-2 bg-gray-400 rounded-full w-full" />
+          </div>
+        )}
       </div>
 
-      {latestDiagnostic && (
+      {hasDiagnostics ? (
         <div className="mt-4 text-sm text-gray-600">
           <p><strong>Risk Score:</strong> {riskScore.toFixed(2)}</p>
           <p><strong>Most Likely:</strong> {latestDiagnostic.most_likely_failure}</p>
+        </div>
+      ) : (
+        <div className="mt-4 text-sm text-gray-500">
+          <p><em>No diagnostic data available</em></p>
+          <p><em>Add sensor data to get predictions</em></p>
         </div>
       )}
     </div>
