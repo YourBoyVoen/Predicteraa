@@ -7,7 +7,7 @@ import ContactPage from "../pages/Contact";
 import AgentPage from "../pages/Agent";
 import MachinePage from "../pages/Machine";
 import HistoryPage from "../pages/History";
-import NotificationPage from "../pages/NotificationPage";
+import NotificationPage from "../pages/Notification";
 
 const AppRouter = () => {
   return (
