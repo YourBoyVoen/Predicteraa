@@ -15,7 +15,7 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState("January");
 
-  // Dummy data untuk 3 mesin
+  // Dummy data for 3 machines
   const dataMachineA = [
     { day: "1", value: 88 },
     { day: "5", value: 92 },
@@ -49,10 +49,10 @@ export default function Dashboard() {
       {/* Sidebar */}
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      {/* Main Content */}
+      {/* Main */}
       <div className="flex-1 min-h-screen bg-gray-50 p-4 md:p-10">
 
-        {/* Top Bar */}
+        {/* Sidebar Toggle Button (Mobile) */}
         <div className="flex items-center justify-between mb-5">
           <button
             className="md:hidden p-2 rounded-lg border"
@@ -117,7 +117,7 @@ export default function Dashboard() {
   );
 }
 
-/* ----------------------  COMPONENT: STAT CARD  ---------------------- */
+/* Stat Card */
 function StatCard({
   title,
   value,
@@ -150,7 +150,7 @@ function StatCard({
 );
 }
 
-/* ----------------------  COMPONENT: MACHINE CHART  ---------------------- */
+/* Machine Chart */
 type ChartPoint = {
   day: string;
   value: number;

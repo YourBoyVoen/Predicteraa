@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Plus, Pencil, Trash2, X } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Menu } from "lucide-react";
 import Sidebar from "../components/layout/Sidebar";
 
 type Machine = {
@@ -58,7 +58,7 @@ const MachinePage: React.FC = () => {
     description: "",
   });
 
-  // ADD MACHINE
+  /* Add Machine */
   const addMachine = () => {
     if (!newMachine.name || !newMachine.name.trim()) return;
 
@@ -79,12 +79,12 @@ const MachinePage: React.FC = () => {
     setNewMachine({ name: "", type: "", endpoint: "", description: "" });
   };
 
-  // DELETE MACHINE
+  /* Delete Machine */
   const deleteMachine = (id: string) => {
     setMachines((prev) => prev.filter((m) => m.id !== id));
   };
 
-  // EDIT MACHINE: save changes from showEditModal
+  /* Edit Machine */
   const saveEditMachine = () => {
     if (!showEditModal) return;
     setMachines((prev) =>
@@ -99,22 +99,20 @@ const MachinePage: React.FC = () => {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main Content */}
-      <div className="flex-1 p-6 pt-24 md:pt-40 relative">
-        {/* Top Bar Mobile */}
-        <div className="absolute top-6 left-6 md:left-10 flex items-center gap-3 md:hidden">
-          <button
-            className="p-2 bg-white shadow rounded-lg"
-            onClick={() => setSidebarOpen(true)}
-          >
-            ☰
-          </button>
-        </div>
-
+      <div className="flex-1 min-h-screen bg-gray-50 p-4 md:p-10">
         {/* Title */}
         <div className="flex justify-between items-center mb-10">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">Machine Settings</h1>
-            <p className="text-gray-600">Manage your machines & performance</p>
+          <div className="flex items-center gap-3">
+            <button
+              className="md:hidden p-2 rounded-lg border"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu size={24} />
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800">Machine Settings</h1>
+              <p className="text-gray-600">Manage your machines & performance</p>
+            </div>
           </div>
 
           <button
@@ -224,10 +222,7 @@ const MachinePage: React.FC = () => {
   );
 };
 
-/* ─────────────────────────────────────────────── */
-/* MACHINE CARD */
-/* ─────────────────────────────────────────────── */
-
+/* Machine Card */
 type MachineCardProps = {
   machine: Machine;
   onDetail: () => void;
@@ -287,9 +282,7 @@ const MachineCard: React.FC<MachineCardProps> = ({ machine, onDetail, onEdit, on
   );
 };
 
-/* ─────────────────────────────────────────────── */
-/* REUSABLE MODAL WRAPPER */
-/* ─────────────────────────────────────────────── */
+/* Modal Wrapper */
 
 const ModalWrapper: React.FC<ModalWrapperProps> = ({ children, onClose }) => (
   <div className="fixed inset-0 bg-black/40 flex items-center justify-center px-4 z-50">
@@ -306,9 +299,7 @@ const ModalWrapper: React.FC<ModalWrapperProps> = ({ children, onClose }) => (
   </div>
 );
 
-/* ─────────────────────────────────────────────── */
-/* REUSABLE INPUT FORM FOR ADD + EDIT */
-/* ─────────────────────────────────────────────── */
+/* Input Form */
 
 type MachineFormProps = {
   machine: Partial<Machine> | Machine | null | undefined;

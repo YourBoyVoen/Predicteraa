@@ -7,14 +7,14 @@ const AgentPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [input, setInput] = useState("");
 
-  // Ambil machineId dari query param → /agent?machineId=3
+  // Get machineId from query param → /agent?machineId=3
   const [params] = useSearchParams();
   const machineId = params.get("machineId");
 
   const handleSend = async () => {
     if (!input.trim()) return;
 
-    // contoh request ke backend
+    // Example request to backend
     const res = await fetch("http://localhost:5000/agent/evaluate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -104,6 +104,7 @@ const AgentPage = () => {
   );
 };
 
+/* Suggestion */
 const Suggestion = ({ text }: { text: string }) => {
   return (
     <button className="px-4 py-2 bg-white rounded-xl text-gray-700 text-sm border border-gray-300 hover:border-blue-400 hover:bg-blue-50 transition shadow-sm">
