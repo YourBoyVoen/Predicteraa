@@ -18,8 +18,7 @@ type Machine = {
   id: number;
   name: string;
   type: string;
-  description?: string;
-  created_at: string;
+  timestamp: string;
   diagnostics?: Diagnostic[];
 };
 
@@ -42,8 +41,7 @@ const MachinePage: React.FC = () => {
       id: 1,
       name: "Main Machine",
       type: "L",
-      description: "Main machine in the building",
-      created_at: "2025-12-12T10:00:00Z",
+      timestamp: "2025-12-12T10:00:00Z",
       diagnostics: [
         {
           id: 1,
@@ -62,8 +60,7 @@ const MachinePage: React.FC = () => {
       id: 2,
       name: "Backup Machine",
       type: "M",
-      description: "Backup machine in the building",
-      created_at: "2025-12-12T09:00:00Z",
+      timestamp: "2025-12-12T09:00:00Z",
       diagnostics: [
         {
           id: 2,
@@ -84,7 +81,6 @@ const MachinePage: React.FC = () => {
   const [newMachine, setNewMachine] = useState<Partial<Machine>>({
     name: "",
     type: "",
-    description: "",
   });
 
   /* Add Machine */
@@ -95,15 +91,14 @@ const MachinePage: React.FC = () => {
       id: Date.now(),
       name: newMachine.name!.trim(),
       type: newMachine.type || "Unknown",
-      description: newMachine.description || "",
-      created_at: new Date().toISOString(),
+      timestamp: new Date().toISOString(),
       diagnostics: [],
     };
 
     setMachines((prev) => [...prev, created]);
 
     setShowAddModal(false);
-    setNewMachine({ name: "", type: "", description: "" });
+    setNewMachine({ name: "", type: "" });
   };
 
   /* Delete Machine */
@@ -203,10 +198,7 @@ const MachinePage: React.FC = () => {
             <strong>Type:</strong> {showDetailModal.type}
           </p>
           <p className="text-gray-700 mb-2">
-            <strong>Description:</strong> {showDetailModal.description}
-          </p>
-          <p className="text-gray-700 mb-2">
-            <strong>Created At:</strong> {new Date(showDetailModal.created_at).toLocaleString()}
+            <strong>Timestamp:</strong> {new Date(showDetailModal.timestamp).toLocaleString()}
           </p>
           {showDetailModal.diagnostics && showDetailModal.diagnostics.length > 0 && (
             <>
@@ -362,16 +354,9 @@ const MachineForm: React.FC<MachineFormProps> = ({ machine, setMachine }) => (
     <input
       type="text"
       placeholder="Machine Type"
-      className="w-full p-3 border rounded-xl mb-3"
+      className="w-full p-3 border rounded-xl mb-4"
       value={machine?.type ?? ""}
       onChange={(e) => setMachine({ type: e.target.value })}
-    />
-
-    <textarea
-      placeholder="Description"
-      className="w-full p-3 border rounded-xl mb-4 h-24"
-      value={machine?.description ?? ""}
-      onChange={(e) => setMachine({ description: e.target.value })}
     />
   </>
 );
