@@ -1,0 +1,35 @@
+/* TILE HARI YANG MENGANDUNG EVENT */
+.has-event-tile {
+  background: #dbeafe !important; /* light blue */
+  border-radius: 10px;
+  font-weight: 600;
+  color: #1e3a8a !important;
+}
+
+/* Hover event tile */
+.has-event-tile:hover {
+  background: #bfdbfe !important; /* darker blue */
+}
+
+/* Highlight hari ini */
+.react-calendar__tile--now {
+  background: #2563eb !important;
+  color: white !important;
+  border-radius: 10px;
+  font-weight: bold;
+}
+
+/* Hover semua tile */
+.react-calendar__tile:hover {
+  background: #e5e7eb !important;
+  border-radius: 10px;
+  transition: 0.15s;
+}
+
+/* Membuat calendar lebih besar */
+.react-calendar {
+  width: 100% !important;
+  font-size: 1.2rem;
+  padding: 20px;
+  border-radius: 20px;
+}
