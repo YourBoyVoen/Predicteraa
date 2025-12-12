@@ -1,0 +1,115 @@
+import React, { useEffect, useState } from "react";
+import Sidebar from "../components/layout/Sidebar";
+
+type HistoryItem = {
+  id: number;
+  machineName: string;
+  issue: string;
+  status: "completed" | "in-progress" | "pending";
+  technician: string;
+  date: string;
+};
+
+const HistoryPage = () => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+
+  // --- FETCH DARI BACKEND ---
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/history");
+        const data = await res.json();
+        setHistory(data);
+      } catch (error) {
+        console.error("Failed to load history:", error);
+      }
+    };
+
+    fetchHistory();
+  }, []);
+
+  return (
+    <div className="flex min-h-screen bg-gray-50">
+      {/* Sidebar */}
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      {/* Main */}
+      <div className="flex-1 p-6 pt-24 md:pt-40 relative">
+
+        {/* Sidebar Toggle Button (Mobile) */}
+        <button
+          className="absolute top-6 left-6 md:left-10 p-2 bg-white shadow rounded-lg md:hidden"
+          onClick={() => setSidebarOpen(true)}
+        >
+          ☰
+        </button>
+
+        <div className="max-w-5xl mx-auto">
+          {/* Header */}
+          <h1 className="text-3xl font-bold text-gray-800 mb-4">
+            Maintenance History
+          </h1>
+          <p className="text-gray-600 mb-10">
+            A list of all machine maintenance activities over time.
+          </p>
+
+          {/* HISTORY LIST */}
+          <div className="space-y-5">
+            {history.length === 0 && (
+              <p className="text-gray-500 text-center py-20">
+                No history available yet...
+              </p>
+            )}
+
+            {history.map((item) => (
+              <HistoryCard key={item.id} item={item} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// CARD COMPONENT
+const HistoryCard = ({ item }: { item: HistoryItem }) => {
+  return (
+    <div className="bg-white rounded-xl shadow p-5 border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      
+      {/* LEFT SIDE INFO */}
+      <div>
+        <h2 className="text-lg font-semibold text-gray-800">
+          {item.machineName}
+        </h2>
+        <p className="text-gray-600 text-sm mt-1">{item.issue}</p>
+
+        <div className="text-xs text-gray-400 mt-2">
+          Technician: <span className="text-gray-700">{item.technician}</span>
+        </div>
+
+        <div className="text-xs text-gray-400">
+          Date: <span className="text-gray-700">{item.date}</span>
+        </div>
+      </div>
+
+      {/* STATUS BADGE */}
+      <span
+        className={`
+          px-3 py-1 rounded-full text-sm font-medium w-fit
+          ${
+            item.status === "completed"
+              ? "bg-green-100 text-green-700"
+              : item.status === "in-progress"
+              ? "bg-yellow-100 text-yellow-700"
+              : "bg-red-100 text-red-700"
+          }
+        `}
+      >
+        {item.status.replace("-", " ").toUpperCase()}
+      </span>
+    </div>
+  );
+};
+
+export default HistoryPage;
