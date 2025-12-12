@@ -115,7 +115,7 @@ export default function Sidebar({
           <SidebarItem
             icon={<LogOut size={18} />}
             label="Logout"
-            to="/login"
+            to="/logout"
           />
         </div>
       </div>
