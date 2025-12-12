@@ -1,10 +1,32 @@
 import React, { useState } from "react";
 import { Send } from "lucide-react";
 import Sidebar from "../components/layout/Sidebar";
+import { useSearchParams } from "react-router-dom";
 
 const AgentPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [input, setInput] = useState("");
+
+  // Ambil machineId dari query param → /agent?machineId=3
+  const [params] = useSearchParams();
+  const machineId = params.get("machineId");
+
+  const handleSend = async () => {
+    if (!input.trim()) return;
+
+    // contoh request ke backend
+    const res = await fetch("http://localhost:5000/agent/evaluate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        question: input,
+        machineId: machineId, // Dikirim ke backend
+      }),
+    });
+
+    const data = await res.json();
+    console.log("Response:", data);
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -38,6 +60,15 @@ const AgentPage = () => {
             </p>
           </div>
 
+          {/* Jika datang dari mesin tertentu */}
+          {machineId && (
+            <div className="mb-8 text-center">
+              <p className="text-blue-600 font-semibold text-sm">
+                You are asking about Machine #{machineId}
+              </p>
+            </div>
+          )}
+
           {/* Suggestions */}
           <div className="flex flex-wrap justify-center gap-4 mb-12">
             <Suggestion text="What can I ask you to do?" />
@@ -54,12 +85,15 @@ const AgentPage = () => {
               onChange={(e) => setInput(e.target.value)}
               className="flex-1 bg-transparent outline-none text-gray-800 placeholder-gray-400"
             />
-            <button className="p-2 rounded-xl hover:bg-blue-500 hover:text-white transition">
+            <button
+              onClick={handleSend}
+              className="p-2 rounded-xl hover:bg-blue-500 hover:text-white transition"
+            >
               <Send className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Placeholder for AI Model Output */}
+          {/* Placeholder for AI Output */}
           <div className="mt-10 text-center text-gray-500 text-sm">
             Your AI model output will appear here...
           </div>

@@ -5,6 +5,7 @@ import Dashboard from "../pages/Dashboard";
 import Calendar from "../pages/Calendar";
 import ContactPage from "../pages/Contact";
 import AgentPage from "../pages/Agent";
+import MachinePage from "../pages/Machine";
 
 const AppRouter = () => {
   return (
@@ -16,6 +17,7 @@ const AppRouter = () => {
       <Route path="/logout" element={<LogoutPage />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/agent" element={<AgentPage />} />
+      <Route path="/machine" element={<MachinePage />} />
       <Route path="/calendar" element={<Calendar />} />
       <Route path="/contact" element={<ContactPage />} />
     </Routes>
