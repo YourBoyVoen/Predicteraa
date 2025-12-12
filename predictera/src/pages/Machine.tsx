@@ -2,15 +2,25 @@ import React, { useState } from "react";
 import { Plus, Pencil, Trash2, X, Menu } from "lucide-react";
 import Sidebar from "../components/layout/Sidebar";
 
+type Diagnostic = {
+  id: number;
+  machine_id: number;
+  timestamp: string;
+  risk_score: number;
+  failure_prediction: any; // JSONB
+  failure_type_probabilities: any; // JSONB
+  most_likely_failure?: string;
+  recommended_action?: string;
+  feature_contributions: any; // JSONB
+};
+
 type Machine = {
-  id: string;
+  id: number;
   name: string;
-  type?: string;
-  endpoint?: string;
+  type: string;
   description?: string;
-  health: "Healthy" | "Warning" | "Critical" | string;
-  performance: number;
-  updated: string;
+  created_at: string;
+  diagnostics?: Diagnostic[];
 };
 
 type ModalWrapperProps = {
@@ -29,24 +39,44 @@ const MachinePage: React.FC = () => {
   // Dummy data
   const [machines, setMachines] = useState<Machine[]>([
     {
-      id: "1",
-      name: "PredictAgent Model V1",
-      health: "Healthy",
-      performance: 92,
-      updated: "2 minutes ago",
-      type: "LLM",
-      endpoint: "/api/model/v1",
-      description: "Main prediction model",
+      id: 1,
+      name: "Main Machine",
+      type: "L",
+      description: "Main machine in the building",
+      created_at: "2025-12-12T10:00:00Z",
+      diagnostics: [
+        {
+          id: 1,
+          machine_id: 1,
+          timestamp: "2025-12-12T10:30:00Z",
+          risk_score: 0.2,
+          failure_prediction: { predicted: false },
+          failure_type_probabilities: { "Normal": 0.8, "Failure A": 0.2 },
+          most_likely_failure: "Normal",
+          recommended_action: "Continue monitoring",
+          feature_contributions: { feature1: 0.1, feature2: 0.05 },
+        },
+      ],
     },
     {
-      id: "2",
-      name: "Forecasting Model",
-      health: "Warning",
-      performance: 67,
-      updated: "10 minutes ago",
-      type: "Time Series",
-      endpoint: "/api/forecast",
-      description: "Forecasting traffic model",
+      id: 2,
+      name: "Backup Machine",
+      type: "M",
+      description: "Backup machine in the building",
+      created_at: "2025-12-12T09:00:00Z",
+      diagnostics: [
+        {
+          id: 2,
+          machine_id: 2,
+          timestamp: "2025-12-12T09:45:00Z",
+          risk_score: 0.8,
+          failure_prediction: { predicted: true },
+          failure_type_probabilities: { "Normal": 0.2, "Failure B": 0.8 },
+          most_likely_failure: "Failure B",
+          recommended_action: "Schedule maintenance",
+          feature_contributions: { feature3: 0.3, feature4: 0.2 },
+        },
+      ],
     },
   ]);
 
@@ -54,7 +84,6 @@ const MachinePage: React.FC = () => {
   const [newMachine, setNewMachine] = useState<Partial<Machine>>({
     name: "",
     type: "",
-    endpoint: "",
     description: "",
   });
 
@@ -63,24 +92,22 @@ const MachinePage: React.FC = () => {
     if (!newMachine.name || !newMachine.name.trim()) return;
 
     const created: Machine = {
-      id: Date.now().toString(),
+      id: Date.now(),
       name: newMachine.name!.trim(),
       type: newMachine.type || "Unknown",
-      endpoint: newMachine.endpoint || "-",
-      description: newMachine.description || "-",
-      health: "Healthy",
-      performance: 0,
-      updated: "just now",
+      description: newMachine.description || "",
+      created_at: new Date().toISOString(),
+      diagnostics: [],
     };
 
     setMachines((prev) => [...prev, created]);
 
     setShowAddModal(false);
-    setNewMachine({ name: "", type: "", endpoint: "", description: "" });
+    setNewMachine({ name: "", type: "", description: "" });
   };
 
   /* Delete Machine */
-  const deleteMachine = (id: string) => {
+  const deleteMachine = (id: number) => {
     setMachines((prev) => prev.filter((m) => m.id !== id));
   };
 
@@ -176,17 +203,28 @@ const MachinePage: React.FC = () => {
             <strong>Type:</strong> {showDetailModal.type}
           </p>
           <p className="text-gray-700 mb-2">
-            <strong>Endpoint:</strong> {showDetailModal.endpoint}
-          </p>
-          <p className="text-gray-700 mb-2">
             <strong>Description:</strong> {showDetailModal.description}
           </p>
           <p className="text-gray-700 mb-2">
-            <strong>Health:</strong> {showDetailModal.health}
+            <strong>Created At:</strong> {new Date(showDetailModal.created_at).toLocaleString()}
           </p>
-          <p className="text-gray-700">
-            <strong>Performance:</strong> {showDetailModal.performance}%
-          </p>
+          {showDetailModal.diagnostics && showDetailModal.diagnostics.length > 0 && (
+            <>
+              <h3 className="text-lg font-semibold mt-4 mb-2">Latest Diagnostic</h3>
+              <p className="text-gray-700 mb-2">
+                <strong>Risk Score:</strong> {showDetailModal.diagnostics[0].risk_score.toFixed(2)}
+              </p>
+              <p className="text-gray-700 mb-2">
+                <strong>Most Likely Failure:</strong> {showDetailModal.diagnostics[0].most_likely_failure}
+              </p>
+              <p className="text-gray-700 mb-2">
+                <strong>Recommended Action:</strong> {showDetailModal.diagnostics[0].recommended_action}
+              </p>
+              <p className="text-gray-700">
+                <strong>Timestamp:</strong> {new Date(showDetailModal.diagnostics[0].timestamp).toLocaleString()}
+              </p>
+            </>
+          )}
         </ModalWrapper>
       )}
 
@@ -231,10 +269,15 @@ type MachineCardProps = {
 };
 
 const MachineCard: React.FC<MachineCardProps> = ({ machine, onDetail, onEdit, onDelete }) => {
+  const latestDiagnostic = machine.diagnostics?.[0];
+  const riskScore = latestDiagnostic?.risk_score ?? 0;
+  const health = riskScore < 0.3 ? "Healthy" : riskScore < 0.7 ? "Warning" : "Critical";
+  const performance = Math.round((1 - riskScore) * 100);
+
   const healthColor =
-    machine.health === "Healthy"
+    health === "Healthy"
       ? "bg-green-100 text-green-700"
-      : machine.health === "Warning"
+      : health === "Warning"
       ? "bg-yellow-100 text-yellow-700"
       : "bg-red-100 text-red-700";
 
@@ -256,28 +299,28 @@ const MachineCard: React.FC<MachineCardProps> = ({ machine, onDetail, onEdit, on
       </div>
 
       <div className={`inline-block px-3 py-1 text-sm rounded-full mt-3 ${healthColor}`}>
-        {machine.health}
+        {health}
       </div>
 
       <div className="mt-4">
         <div className="flex justify-between text-sm mb-1">
           <span className="text-gray-700">Performance</span>
-          <span className="font-semibold">{machine.performance}%</span>
+          <span className="font-semibold">{performance}%</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
             className="h-2 bg-blue-600 rounded-full"
-            style={{ width: `${machine.performance}%` }}
+            style={{ width: `${performance}%` }}
           />
         </div>
       </div>
-      <button
-        onClick={() => window.location.href = `/agent?machineId=${machine.id}`}
-        className="mt-4 w-full bg-blue-600 text-white py-2 rounded-xl hover:bg-blue-700 transition"
-        >
-        Ask Agent
-      </button>
-      <p className="text-gray-500 text-xs mt-3">Updated {machine.updated}</p>
+
+      {latestDiagnostic && (
+        <div className="mt-4 text-sm text-gray-600">
+          <p><strong>Risk Score:</strong> {riskScore.toFixed(2)}</p>
+          <p><strong>Most Likely:</strong> {latestDiagnostic.most_likely_failure}</p>
+        </div>
+      )}
     </div>
   );
 };
@@ -322,14 +365,6 @@ const MachineForm: React.FC<MachineFormProps> = ({ machine, setMachine }) => (
       className="w-full p-3 border rounded-xl mb-3"
       value={machine?.type ?? ""}
       onChange={(e) => setMachine({ type: e.target.value })}
-    />
-
-    <input
-      type="text"
-      placeholder="Endpoint / Model Path"
-      className="w-full p-3 border rounded-xl mb-3"
-      value={machine?.endpoint ?? ""}
-      onChange={(e) => setMachine({ endpoint: e.target.value })}
     />
 
     <textarea
