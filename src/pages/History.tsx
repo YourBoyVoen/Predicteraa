@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Sidebar from "../components/layout/Sidebar";
+import { Menu } from "lucide-react";
+import { historyApi } from "../services";
 
 type HistoryItem = {
   id: number;
@@ -14,12 +16,11 @@ const HistoryPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
-  // --- FETCH DARI BACKEND ---
+  // Fetch from backend
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const res = await fetch("http://localhost:5000/history");
-        const data = await res.json();
+        const data = await historyApi.getHistory();
         setHistory(data);
       } catch (error) {
         console.error("Failed to load history:", error);
@@ -31,30 +32,30 @@ const HistoryPage = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
+
       {/* Sidebar */}
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main */}
-      <div className="flex-1 p-6 pt-24 md:pt-40 relative">
+      <div className="flex-1 min-h-screen bg-gray-50 p-4 md:p-10">
 
         {/* Sidebar Toggle Button (Mobile) */}
-        <button
-          className="absolute top-6 left-6 md:left-10 p-2 bg-white shadow rounded-lg md:hidden"
-          onClick={() => setSidebarOpen(true)}
-        >
-          ☰
-        </button>
+        <div className="flex items-center justify-between mb-5">
+          <button
+            className="md:hidden p-2 rounded-lg border"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <Menu size={24} />
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">Maintenance History</h1>
+            <p className="text-gray-600">A list of all machine maintenance activities over time.</p>
+          </div>
+        </div>
 
-        <div className="max-w-5xl mx-auto">
-          {/* Header */}
-          <h1 className="text-3xl font-bold text-gray-800 mb-4">
-            Maintenance History
-          </h1>
-          <p className="text-gray-600 mb-10">
-            A list of all machine maintenance activities over time.
-          </p>
+        <div className="max-w-5xl">
 
-          {/* HISTORY LIST */}
+          {/* History List */}
           <div className="space-y-5">
             {history.length === 0 && (
               <p className="text-gray-500 text-center py-20">
@@ -73,6 +74,7 @@ const HistoryPage = () => {
 };
 
 // CARD COMPONENT
+/* History Card */
 const HistoryCard = ({ item }: { item: HistoryItem }) => {
   return (
     <div className="bg-white rounded-xl shadow p-5 border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">

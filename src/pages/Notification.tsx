@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Sidebar from "../components/layout/Sidebar";
-import { AlertTriangle, Bell } from "lucide-react";
+import { AlertTriangle, Menu } from "lucide-react";
+import { notificationsApi } from "../services";
 
 type NotificationItem = {
   id: string;
@@ -18,8 +19,7 @@ const NotificationPage = () => {
   useEffect(() => {
     const fetchNotif = async () => {
       try {
-        const res = await fetch("http://localhost:5000/notifications");
-        const data = await res.json();
+        const data = await notificationsApi.getNotifications();
         setNotifications(data);
       } catch (err) {
         console.error("Failed to load notifications:", err);
@@ -31,29 +31,28 @@ const NotificationPage = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
+
+      {/* Sidebar */}
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main */}
-      <div className="flex-1 p-6 pt-24 md:pt-40 relative">
+      <div className="flex-1 min-h-screen bg-gray-50 p-4 md:p-10">
 
-        {/* Top Bar Mobile */}
-        <button
-          className="absolute top-6 left-6 md:left-10 p-2 bg-white shadow rounded-lg md:hidden"
-          onClick={() => setSidebarOpen(true)}
-        >
-          ☰
-        </button>
-
-        <div className="max-w-4xl mx-auto">
-
-          {/* Title */}
-          <div className="flex items-center gap-3 mb-10">
-            <Bell className="w-7 h-7 text-yellow-600" />
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800">Notifications</h1>
-              <p className="text-gray-600">Machine warnings & critical events</p>
-            </div>
+        {/* Sidebar Toggle Button (Mobile) */}
+        <div className="flex items-center justify-between mb-5">
+          <button
+            className="md:hidden p-2 rounded-lg border"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <Menu size={24} />
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">Notifications</h1>
+            <p className="text-gray-600">Machine warnings & critical events</p>
           </div>
+        </div>
+
+        <div className="max-w-5xl">
 
           {/* Notification List */}
           <div className="space-y-5">
@@ -71,6 +70,7 @@ const NotificationPage = () => {
   );
 };
 
+/* Notification Card */
 const NotificationCard = ({ item }: { item: NotificationItem }) => {
   const badgeColor =
     item.level === "critical"
