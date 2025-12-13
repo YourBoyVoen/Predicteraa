@@ -103,17 +103,13 @@ const AgentPage = () => {
     };
     setMessages(prev => [...prev, tempUserMessage]);
 
+    const wasNewConversation = !conversationId;
+
     try {
       const data = await agentApi.sendMessage({
         message: userMessage,
         conversation_id: conversationId ? parseInt(conversationId) : undefined,
       });
-
-      // If new conversation was created, navigate to it
-      if (!conversationId && data.data.conversation_id) {
-        navigate(`/agent?conversation=${data.data.conversation_id}`);
-        await refreshConversations(); // Refresh conversations list
-      }
 
       const assistantMessage: Message = {
         id: ++messageIdCounter.current,
@@ -122,6 +118,12 @@ const AgentPage = () => {
         timestamp: new Date().toISOString()
       };
       setMessages(prev => [...prev, assistantMessage]);
+
+      // If new conversation was created, navigate to it
+      if (wasNewConversation && data.data.conversation_id) {
+        navigate(`/agent?conversation=${data.data.conversation_id}`, { replace: true });
+        await refreshConversations(); // Refresh conversations list
+      }
 
     } catch (err: unknown) {
       console.error("Chat error:", err);
@@ -132,15 +134,27 @@ const AgentPage = () => {
           errorMessage = "Service not found. Please check your connection.";
         } else if (err.status === 500) {
           errorMessage = "Server error. Please try again later.";
+        } else if (err.status === 429) {
+          errorMessage = "AI service rate limit reached. Please try again later.";
         } else if (err.status) {
           errorMessage = `Request failed (${err.status}): ${err.message}`;
         } else {
           errorMessage = err.message;
         }
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
       }
 
       setError(errorMessage);
       setMessages(prev => prev.slice(0, -1));
+      
+      // Auto-clear error after 8 seconds for better visibility
+      const timeoutId = setTimeout(() => {
+        setError(null);
+      }, 8000);
+      
+      // Store timeout ID to clear if component unmounts
+      return () => clearTimeout(timeoutId);
     } finally {
       setIsLoading(false);
     }
@@ -332,8 +346,16 @@ const AgentPage = () => {
 
                 {/* Error Message */}
                 {error && (
-                  <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-red-600 text-sm">{error}</p>
+                  <div className="mb-3 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg shadow-lg animate-fade-in">
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                      <div className="flex-1">
+                        <p className="text-red-800 font-semibold text-sm">Error</p>
+                        <p className="text-red-700 text-sm mt-1">{error}</p>
+                      </div>
+                    </div>
                   </div>
                 )}
                 

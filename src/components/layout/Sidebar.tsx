@@ -11,8 +11,8 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { agentApi, type Conversation } from "../../services";
+import { memo } from "react";
+import { useConversations } from "../../contexts/ConversationsContext";
 
 export default function Sidebar({
   open,
@@ -23,30 +23,7 @@ export default function Sidebar({
 }) {
   const location = useLocation(); // untuk deteksi halaman aktif
   const [params] = useSearchParams();
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-
-  // Load conversations on mount
-  useEffect(() => {
-    loadConversations();
-  }, []);
-
-  const loadConversations = async () => {
-    try {
-      const response = await agentApi.getConversations();
-      setConversations(response.data.conversations);
-    } catch (error) {
-      console.error("Failed to load conversations:", error);
-    }
-  };
-
-  const handleDeleteConversation = async (id: number) => {
-    try {
-      await agentApi.deleteConversation(id);
-      setConversations(prev => prev.filter(conv => conv.id !== id));
-    } catch (error) {
-      console.error("Failed to delete conversation:", error);
-    }
-  };
+  const { conversations, deleteConversation } = useConversations();
 
   return (
     <>
@@ -187,7 +164,7 @@ function SidebarItem({
   );
 }
 
-function ConversationItem({
+const ConversationItem = memo(function ConversationItem({
   label,
   to,
   active = false,
@@ -227,4 +204,4 @@ function ConversationItem({
       </div>
     </Link>
   );
-}
+});

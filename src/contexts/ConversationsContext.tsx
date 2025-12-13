@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { agentApi, type Conversation } from '../services';
 
 interface ConversationsContextType {
@@ -28,7 +28,7 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadConversations = async () => {
+  const loadConversations = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -40,9 +40,9 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const deleteConversation = async (id: number) => {
+  const deleteConversation = useCallback(async (id: number) => {
     try {
       await agentApi.deleteConversation(id);
       setConversations(prev => prev.filter(conv => conv.id !== id));
@@ -50,23 +50,23 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
       setError('Failed to delete conversation');
       console.error('Failed to delete conversation:', err);
     }
-  };
+  }, []);
 
-  const refreshConversations = async () => {
+  const refreshConversations = useCallback(async () => {
     await loadConversations();
-  };
+  }, [loadConversations]);
 
   useEffect(() => {
     loadConversations();
-  }, []);
+  }, [loadConversations]);
 
-  const value: ConversationsContextType = {
+  const value = useMemo<ConversationsContextType>(() => ({
     conversations,
     loading,
     error,
     refreshConversations,
     deleteConversation,
-  };
+  }), [conversations, loading, error, refreshConversations, deleteConversation]);
 
   return (
     <ConversationsContext.Provider value={value}>
