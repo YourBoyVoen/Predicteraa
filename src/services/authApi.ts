@@ -24,6 +24,7 @@ export interface RefreshTokenResponse {
   message: string;
   data: {
     accessToken: string;
+    refreshToken: string;
   };
 }
 
@@ -38,20 +39,18 @@ export interface LogoutResponse {
 
 // API methods
 export const authApi = {
-  // POST /authentications - User login
+  // POST /auth/login - User login
   login: async (payload: LoginPayload): Promise<LoginResponse> => {
-    return httpClient.post<LoginResponse>('/authentications', payload);
+    return httpClient.post<LoginResponse>('/auth/login', payload);
   },
 
-  // PUT /authentications - Refresh access token
+  // POST /auth/refresh - Refresh access token
   refreshToken: async (payload: RefreshTokenPayload): Promise<RefreshTokenResponse> => {
-    return httpClient.put<RefreshTokenResponse>('/authentications', payload);
+    return httpClient.post<RefreshTokenResponse>('/auth/refresh', payload);
   },
 
-  // DELETE /authentications - User logout
+  // POST /auth/logout - User logout
   logout: async (payload: LogoutPayload): Promise<LogoutResponse> => {
-    return httpClient.delete<LogoutResponse>('/authentications', {
-      body: JSON.stringify(payload),
-    });
+    return httpClient.post<LogoutResponse>('/auth/logout', payload);
   },
 };
