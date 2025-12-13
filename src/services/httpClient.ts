@@ -31,6 +31,7 @@ export class HttpClient {
 
     try {
       const response = await fetch(url, {
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),

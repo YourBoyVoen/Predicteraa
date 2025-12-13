@@ -1,3 +1,6 @@
+// notificationsApi.ts
+import { httpClient } from "./httpClient";
+
 // Types
 export interface NotificationItem {
   id: string;
@@ -14,27 +17,31 @@ export interface NotificationsResponse {
   };
 }
 
+export interface PostNotificationPayload {
+  userId: string;
+  machineId?: string;
+  level?: string;
+  message?: string;
+}
+
+export interface PostNotificationResponse {
+  status: string;
+  message: string;
+  data: {
+    notificationId: number;
+  };
+}
+
 // API methods
 export const notificationsApi = {
+  // POST /notifications - Create a new notification
+  addNotification: async (payload: PostNotificationPayload): Promise<PostNotificationResponse> => {
+    return httpClient.post<PostNotificationResponse>('/notifications', payload);
+  },
+  
   // GET /notifications - Get notifications
   getNotifications: async (): Promise<NotificationItem[]> => {
-    // TODO: Replace with actual backend endpoint when available
-    // For now, return mock data
-    return [
-      {
-        id: '1',
-        machineName: 'CNC Machine A',
-        message: 'High risk score detected',
-        level: 'critical',
-        time: '2 minutes ago',
-      },
-      {
-        id: '2',
-        machineName: 'CNC Machine B',
-        message: 'Tool wear approaching limit',
-        level: 'warning',
-        time: '15 minutes ago',
-      },
-    ];
+    const response = await httpClient.get<NotificationsResponse>('/notifications');
+    return response.data.notifications;
   },
 };
