@@ -4,6 +4,7 @@ import Sidebar from "../components/layout/Sidebar";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { agentApi, ApiError, type Conversation } from "../services";
 import { useConversations } from "../contexts/ConversationsContext";
+import { useSnackbar } from "../contexts/SnackbarContext";
 import ReactMarkdown from "react-markdown";
 
 interface Message {
@@ -23,6 +24,7 @@ const AgentPage = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { conversations, refreshConversations, deleteConversation: deleteConv } = useConversations();
+  const { showSnackbar } = useSnackbar();
 
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -72,6 +74,8 @@ const AgentPage = () => {
     try {
       await deleteConv(convId);
       
+      showSnackbar('Conversation deleted successfully', 'success');
+      
       // If we're currently viewing the deleted conversation, navigate away
       if (conversationId === String(convId)) {
         navigate('/agent');
@@ -81,9 +85,8 @@ const AgentPage = () => {
       // Conversations list is updated automatically by context
     } catch (err) {
       console.error('Failed to delete conversation:', err);
-      if (err instanceof ApiError) {
-        setError(`Failed to delete conversation: ${err.message}`);
-      }
+      const errorMsg = err instanceof ApiError ? err.message : 'Failed to delete conversation';
+      showSnackbar(errorMsg, 'error');
     }
   };
 
@@ -145,16 +148,15 @@ const AgentPage = () => {
         errorMessage = err.message;
       }
 
+      // Show error in both places for visibility
       setError(errorMessage);
+      showSnackbar(errorMessage, 'error');
       setMessages(prev => prev.slice(0, -1));
       
-      // Auto-clear error after 8 seconds for better visibility
-      const timeoutId = setTimeout(() => {
+      // Auto-clear inline error after 8 seconds
+      setTimeout(() => {
         setError(null);
       }, 8000);
-      
-      // Store timeout ID to clear if component unmounts
-      return () => clearTimeout(timeoutId);
     } finally {
       setIsLoading(false);
     }

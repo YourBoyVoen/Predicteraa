@@ -80,7 +80,7 @@ export default function Sidebar({
                 label={conv.title || `Conversation ${conv.id}`}
                 to={`/agent?conversation=${conv.id}`}
                 active={location.pathname === "/agent" && params.get("conversation") === String(conv.id)}
-                onDelete={() => handleDeleteConversation(conv.id)}
+                onDelete={() => deleteConversation(conv.id)}
               />
             ))}
           </div>
