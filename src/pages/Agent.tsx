@@ -3,6 +3,7 @@ import { Send, Loader2, MessageSquare } from "lucide-react";
 import Sidebar from "../components/layout/Sidebar";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { agentApi, ApiError, type Conversation } from "../services";
+import { useConversations } from "../contexts/ConversationsContext";
 import ReactMarkdown from "react-markdown";
 
 interface Message {
@@ -16,11 +17,12 @@ const AgentPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messageIdCounter = useRef(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const { conversations, refreshConversations, deleteConversation: deleteConv } = useConversations();
 
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -32,11 +34,6 @@ const AgentPage = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Load conversations on mount
-  useEffect(() => {
-    loadConversations();
-  }, []);
-
   // Load conversation messages when conversation ID changes
   useEffect(() => {
     if (conversationId) {
@@ -45,16 +42,6 @@ const AgentPage = () => {
       setMessages([]);
     }
   }, [conversationId]);
-
-  const loadConversations = async () => {
-    try {
-      const data = await agentApi.getConversations();
-      // Limit to 5 most recent conversations
-      setConversations(data.data.conversations.slice(0, 5));
-    } catch (err) {
-      console.error('Failed to load conversations:', err);
-    }
-  };
 
   const loadConversationMessages = async (convId: number) => {
     try {
@@ -75,6 +62,29 @@ const AgentPage = () => {
   const startNewConversation = () => {
     navigate('/agent');
     setMessages([]);
+  };
+
+  const handleDeleteConversation = async (convId: number) => {
+    if (!window.confirm('Are you sure you want to delete this conversation?')) {
+      return;
+    }
+
+    try {
+      await deleteConv(convId);
+      
+      // If we're currently viewing the deleted conversation, navigate away
+      if (conversationId === String(convId)) {
+        navigate('/agent');
+        setMessages([]);
+      }
+      
+      // Conversations list is updated automatically by context
+    } catch (err) {
+      console.error('Failed to delete conversation:', err);
+      if (err instanceof ApiError) {
+        setError(`Failed to delete conversation: ${err.message}`);
+      }
+    }
   };
 
   const handleSend = async () => {
@@ -102,7 +112,7 @@ const AgentPage = () => {
       // If new conversation was created, navigate to it
       if (!conversationId && data.data.conversation_id) {
         navigate(`/agent?conversation=${data.data.conversation_id}`);
-        await loadConversations(); // Refresh conversations list
+        await refreshConversations(); // Refresh conversations list
       }
 
       const assistantMessage: Message = {
@@ -152,7 +162,7 @@ const AgentPage = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} conversations={conversations} />
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex-1 flex flex-col">
         {/* Mobile Menu & Conversations Button */}

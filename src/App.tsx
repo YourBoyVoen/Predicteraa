@@ -1,5 +1,10 @@
 import AppRouter from "./router/AppRouter";
+import { ConversationsProvider } from "./contexts/ConversationsContext";
 
 export default function App() {
-  return <AppRouter />;
+  return (
+    <ConversationsProvider>
+      <AppRouter />
+    </ConversationsProvider>
+  );
 }
