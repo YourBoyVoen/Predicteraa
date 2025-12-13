@@ -12,16 +12,89 @@ interface Message {
   role: 'user' | 'assistant';
   message: string;
   timestamp: string;
+  animate?: boolean; // Add animate flag
+  source?: string; // AI source (e.g., 'Google Gemini AI')
 }
+
+// Typewriter animation component
+const TypewriterText: React.FC<{ text: string; speed?: number; onComplete?: () => void }> = ({ text, speed = 6, onComplete }) => {
+  const [displayText, setDisplayText] = useState('');
+  const [isComplete, setIsComplete] = useState(false);
+
+  useEffect(() => {
+    if (!text) {
+      setDisplayText('');
+      setIsComplete(true);
+      return;
+    }
+
+    setDisplayText('');
+    setIsComplete(false);
+    
+    let index = 0;
+    let isCancelled = false;
+
+    const typeNextChar = () => {
+      if (isCancelled) return;
+      
+      if (index < text.length) {
+        setDisplayText(text.substring(0, index + 1));
+        index++;
+        setTimeout(typeNextChar, speed);
+      } else {
+        if (!isCancelled) {
+          setIsComplete(true);
+          onComplete?.();
+        }
+      }
+    };
+
+    // Start typing immediately
+    typeNextChar();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [text, speed]);
+
+  // Always render with markdown to show formatting during animation
+  return (
+    <div className="markdown-content">
+      <ReactMarkdown
+        components={{
+          // Custom styling for markdown elements
+          p: ({node, ...props}) => <p className="mb-3 last:mb-0 leading-relaxed" {...props} />,
+          ul: ({node, ...props}) => <ul className="list-disc list-inside mb-3 last:mb-0 space-y-1" {...props} />,
+          ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-3 last:mb-0 space-y-1" {...props} />,
+          li: ({node, ...props}) => <li className="ml-2" {...props} />,
+          strong: ({node, ...props}) => <strong className="font-semibold text-gray-900" {...props} />,
+          em: ({node, ...props}) => <em className="italic" {...props} />,
+          h1: ({node, ...props}) => <h1 className="text-xl font-bold mb-2 mt-4 first:mt-0" {...props} />,
+          h2: ({node, ...props}) => <h2 className="text-lg font-bold mb-2 mt-3 first:mt-0" {...props} />,
+          h3: ({node, ...props}) => <h3 className="text-base font-bold mb-2 mt-3 first:mt-0" {...props} />,
+          code: ({node, inline, ...props}: any) => 
+            inline ? (
+              <code className="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono" {...props} />
+            ) : (
+              <code className="block bg-gray-100 p-3 rounded-lg text-sm font-mono overflow-x-auto" {...props} />
+            ),
+        }}
+      >
+        {displayText}
+      </ReactMarkdown>
+    </div>
+  );
+};
 
 const AgentPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const messageIdCounter = useRef(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const pendingNavigationRef = useRef<{ convId: number } | null>(null);
 
   const { conversations, refreshConversations, deleteConversation: deleteConv } = useConversations();
   const { showSnackbar } = useSnackbar();
@@ -52,7 +125,7 @@ const AgentPage = () => {
     } catch (err) {
       console.error('Failed to load conversation messages:', err);
       if (err instanceof ApiError && err.status === 401) {
-        setError('Unauthorized access to this conversation');
+        showSnackbar('Unauthorized access to this conversation', 'error');
       }
     }
   };
@@ -94,9 +167,15 @@ const AgentPage = () => {
     if (!input.trim() || isLoading) return;
 
     const userMessage = input.trim();
-    setInput("");
-    setError(null);
+    const wasEmpty = messages.length === 0;
     setIsLoading(true);
+
+    // If starting from empty state, trigger layout transition first
+    if (wasEmpty) {
+      setIsTransitioning(true);
+      // Wait for layout to render
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
 
     const tempUserMessage: Message = {
       id: ++messageIdCounter.current,
@@ -106,6 +185,11 @@ const AgentPage = () => {
     };
     setMessages(prev => [...prev, tempUserMessage]);
 
+    // Scroll to ensure we're in the message view
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
+
     const wasNewConversation = !conversationId;
 
     try {
@@ -114,18 +198,28 @@ const AgentPage = () => {
         conversation_id: conversationId ? parseInt(conversationId) : undefined,
       });
 
+      // Clear input only on successful send
+      setInput("");
+
+      // Always add minimum delay to prevent flickering
+      await new Promise(resolve => setTimeout(resolve, 800));
+
       const assistantMessage: Message = {
         id: ++messageIdCounter.current,
         role: 'assistant',
         message: data.data.response,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        animate: true, // Mark for animation
+        source: data.data.sources?.[0] || 'AI' // Capture AI source
       };
       setMessages(prev => [...prev, assistantMessage]);
+      setIsTransitioning(false); // Clear transition state
+      setIsLoading(false); // Clear loading when assistant message appears
 
-      // If new conversation was created, navigate to it
+      // If new conversation was created, store the navigation request
+      // It will be executed when the typewriter animation completes
       if (wasNewConversation && data.data.conversation_id) {
-        navigate(`/agent?conversation=${data.data.conversation_id}`, { replace: true });
-        await refreshConversations(); // Refresh conversations list
+        pendingNavigationRef.current = { convId: data.data.conversation_id };
       }
 
     } catch (err: unknown) {
@@ -148,17 +242,20 @@ const AgentPage = () => {
         errorMessage = err.message;
       }
 
-      // Show error in both places for visibility
-      setError(errorMessage);
+      // Show error via snackbar
       showSnackbar(errorMessage, 'error');
       setMessages(prev => prev.slice(0, -1));
-      
-      // Auto-clear inline error after 8 seconds
-      setTimeout(() => {
-        setError(null);
-      }, 8000);
-    } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAnimationComplete = () => {
+    // When animation completes, execute any pending navigation
+    if (pendingNavigationRef.current) {
+      const { convId } = pendingNavigationRef.current;
+      pendingNavigationRef.current = null;
+      navigate(`/agent?conversation=${convId}`, { replace: true });
+      refreshConversations();
     }
   };
 
@@ -174,7 +271,7 @@ const AgentPage = () => {
   };
 
   const currentConversation = conversations.find(conv => String(conv.id) === conversationId);
-  const hasMessages = messages.length > 0;
+  const hasMessages = messages.length > 0 || isTransitioning;
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -286,36 +383,55 @@ const AgentPage = () => {
                         {msg.role === 'user' ? (
                           <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
                         ) : (
-                          <div className="markdown-content">
-                            <ReactMarkdown
-                              components={{
-                                // Custom styling for markdown elements
-                                p: ({node, ...props}) => <p className="mb-3 last:mb-0 leading-relaxed" {...props} />,
-                                ul: ({node, ...props}) => <ul className="list-disc list-inside mb-3 last:mb-0 space-y-1" {...props} />,
-                                ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-3 last:mb-0 space-y-1" {...props} />,
-                                li: ({node, ...props}) => <li className="ml-2" {...props} />,
-                                strong: ({node, ...props}) => <strong className="font-semibold text-gray-900" {...props} />,
-                                em: ({node, ...props}) => <em className="italic" {...props} />,
-                                h1: ({node, ...props}) => <h1 className="text-xl font-bold mb-2 mt-4 first:mt-0" {...props} />,
-                                h2: ({node, ...props}) => <h2 className="text-lg font-bold mb-2 mt-3 first:mt-0" {...props} />,
-                                h3: ({node, ...props}) => <h3 className="text-base font-bold mb-2 mt-3 first:mt-0" {...props} />,
-                                code: ({node, inline, ...props}: any) => 
-                                  inline ? (
-                                    <code className="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono" {...props} />
-                                  ) : (
-                                    <code className="block bg-gray-100 p-3 rounded-lg text-sm font-mono overflow-x-auto" {...props} />
-                                  ),
-                              }}
-                            >
-                              {msg.message}
-                            </ReactMarkdown>
-                          </div>
+                          msg.animate ? (
+                            <TypewriterText text={msg.message} onComplete={handleAnimationComplete} />
+                          ) : (
+                            <div className="markdown-content">
+                              <ReactMarkdown
+                                components={{
+                                  // Custom styling for markdown elements
+                                  p: ({node, ...props}) => <p className="mb-3 last:mb-0 leading-relaxed" {...props} />,
+                                  ul: ({node, ...props}) => <ul className="list-disc list-inside mb-3 last:mb-0 space-y-1" {...props} />,
+                                  ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-3 last:mb-0 space-y-1" {...props} />,
+                                  li: ({node, ...props}) => <li className="ml-2" {...props} />,
+                                  strong: ({node, ...props}) => <strong className="font-semibold text-gray-900" {...props} />,
+                                  em: ({node, ...props}) => <em className="italic" {...props} />,
+                                  h1: ({node, ...props}) => <h1 className="text-xl font-bold mb-2 mt-4 first:mt-0" {...props} />,
+                                  h2: ({node, ...props}) => <h2 className="text-lg font-bold mb-2 mt-3 first:mt-0" {...props} />,
+                                  h3: ({node, ...props}) => <h3 className="text-base font-bold mb-2 mt-3 first:mt-0" {...props} />,
+                                  code: ({node, inline, ...props}: any) => 
+                                    inline ? (
+                                      <code className="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono" {...props} />
+                                    ) : (
+                                      <code className="block bg-gray-100 p-3 rounded-lg text-sm font-mono overflow-x-auto" {...props} />
+                                    ),
+                                }}
+                              >
+                                {msg.message}
+                              </ReactMarkdown>
+                            </div>
+                          )
                         )}
-                        <p className={`text-xs mt-2 ${
-                          msg.role === 'user' ? 'text-blue-100' : 'text-gray-500'
-                        }`}>
-                          {new Date(msg.timestamp).toLocaleTimeString()}
-                        </p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <p className={`text-xs ${
+                            msg.role === 'user' ? 'text-blue-100' : 'text-gray-500'
+                          }`}>
+                            {new Date(msg.timestamp).toLocaleTimeString()}
+                          </p>
+                          {msg.role === 'assistant' && msg.source && (
+                            <div className="group relative">
+                              <svg className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 transition-colors cursor-help" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                              </svg>
+                              <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-max max-w-xs">
+                                <div className="bg-gray-900 text-white text-xs rounded-lg py-1.5 px-2.5 shadow-lg">
+                                  {msg.source}
+                                  <div className="absolute top-full left-2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -345,21 +461,6 @@ const AgentPage = () => {
                   <Suggestion text="Which machines need attention?" onClick={handleSuggestionClick} />
                   <Suggestion text="When was the last time a diagnostic was done?" onClick={handleSuggestionClick} />
                 </div>
-
-                {/* Error Message */}
-                {error && (
-                  <div className="mb-3 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg shadow-lg animate-fade-in">
-                    <div className="flex items-start gap-3">
-                      <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                      </svg>
-                      <div className="flex-1">
-                        <p className="text-red-800 font-semibold text-sm">Error</p>
-                        <p className="text-red-700 text-sm mt-1">{error}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
                 
                 {/* Input - No border on container */}
                 <div className="w-full bg-white shadow rounded-2xl flex items-center px-4 py-3">

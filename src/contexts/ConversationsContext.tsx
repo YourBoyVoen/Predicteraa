@@ -33,7 +33,10 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
       setLoading(true);
       setError(null);
       const response = await agentApi.getConversations();
-      setConversations(response.data.conversations);
+      const sortedConversations = response.data.conversations
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 5);
+      setConversations(sortedConversations);
     } catch (err) {
       setError('Failed to load conversations');
       console.error('Failed to load conversations:', err);
@@ -42,19 +45,19 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
     }
   }, []);
 
+  const refreshConversations = useCallback(async () => {
+    await loadConversations();
+  }, [loadConversations]);
+
   const deleteConversation = useCallback(async (id: number) => {
     try {
       await agentApi.deleteConversation(id);
-      setConversations(prev => prev.filter(conv => conv.id !== id));
+      await refreshConversations();
     } catch (err) {
       setError('Failed to delete conversation');
       console.error('Failed to delete conversation:', err);
     }
-  }, []);
-
-  const refreshConversations = useCallback(async () => {
-    await loadConversations();
-  }, [loadConversations]);
+  }, [refreshConversations]);
 
   useEffect(() => {
     loadConversations();
