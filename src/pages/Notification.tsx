@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Sidebar from "../components/layout/Sidebar";
 import { AlertTriangle, Menu } from "lucide-react";
+import { notificationsApi } from "../services";
 
 type NotificationItem = {
   id: string;
@@ -18,8 +19,7 @@ const NotificationPage = () => {
   useEffect(() => {
     const fetchNotif = async () => {
       try {
-        const res = await fetch("http://localhost:5000/notifications");
-        const data = await res.json();
+        const data = await notificationsApi.getNotifications();
         setNotifications(data);
       } catch (err) {
         console.error("Failed to load notifications:", err);
@@ -52,7 +52,7 @@ const NotificationPage = () => {
           </div>
         </div>
 
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-5xl">
 
           {/* Notification List */}
           <div className="space-y-5">

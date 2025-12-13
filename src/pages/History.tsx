@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Sidebar from "../components/layout/Sidebar";
 import { Menu } from "lucide-react";
+import { historyApi } from "../services";
 
 type HistoryItem = {
   id: number;
@@ -19,8 +20,7 @@ const HistoryPage = () => {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const res = await fetch("http://localhost:5000/history");
-        const data = await res.json();
+        const data = await historyApi.getHistory();
         setHistory(data);
       } catch (error) {
         console.error("Failed to load history:", error);
@@ -53,7 +53,7 @@ const HistoryPage = () => {
           </div>
         </div>
 
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-5xl">
 
           {/* History List */}
           <div className="space-y-5">

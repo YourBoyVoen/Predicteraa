@@ -8,17 +8,22 @@ import {
   Phone,
   X,
   LogOut,
+  MessageSquare,
 } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
+import type { Conversation } from "../../services";
 
 export default function Sidebar({
   open,
   onClose,
+  conversations,
 }: {
   open: boolean;
   onClose: () => void;
+  conversations?: Conversation[];
 }) {
   const location = useLocation(); // untuk deteksi halaman aktif
+  const [params] = useSearchParams();
 
   return (
     <>
@@ -35,7 +40,7 @@ export default function Sidebar({
           fixed top-0 left-0 h-screen w-64 bg-white shadow-lg px-6 py-6
           z-30 transform transition-transform duration-300
           ${open ? "translate-x-0" : "-translate-x-full"}
-          md:translate-x-0 md:static
+          md:translate-x-0 md:sticky md:top-0
           flex flex-col
         `}
       >
@@ -65,8 +70,21 @@ export default function Sidebar({
             icon={<Users size={18} />}
             label="Agent"
             to="/agent"
-            active={location.pathname === "/agent"}
+            active={location.pathname === "/agent" && !params.get("conversation")}
           />
+
+          {conversations && (
+            <div className="ml-6 space-y-1">
+              {conversations.map((conv) => (
+                <ConversationItem
+                  key={conv.id}
+                  label={conv.title || `Conversation ${conv.id}`}
+                  to={`/agent?conversation=${conv.id}`}
+                  active={location.pathname === "/agent" && params.get("conversation") === String(conv.id)}
+                />
+              ))}
+            </div>
+          )}
 
           <SidebarItem
             icon={<Cpu size={18} />}
@@ -142,6 +160,28 @@ function SidebarItem({
       >
         {icon}
         <span className="font-medium">{label}</span>
+      </div>
+    </Link>
+  );
+}
+
+function ConversationItem({
+  label,
+  to,
+  active = false,
+}: {
+  label: string;
+  to: string;
+  active?: boolean;
+}) {
+  return (
+    <Link to={to}>
+      <div
+        className={`flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition text-sm
+        ${active ? "bg-blue-600 text-white" : "text-gray-700 hover:bg-blue-300"}`}
+      >
+        <MessageSquare size={14} />
+        <span className="font-medium truncate block">{label}</span>
       </div>
     </Link>
   );
