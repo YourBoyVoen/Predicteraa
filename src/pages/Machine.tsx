@@ -360,7 +360,7 @@ const MachineForm: React.FC<MachineFormProps> = ({ machine, setMachine }) => (
 
     <input
       type="text"
-      placeholder="Machine Type"
+      placeholder="Machine Type (L, M, or H)"
       className="w-full p-3 border rounded-xl mb-4"
       value={machine?.type ?? ""}
       onChange={(e) => setMachine({ type: e.target.value })}
