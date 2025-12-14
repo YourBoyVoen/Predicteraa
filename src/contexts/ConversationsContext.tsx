@@ -29,6 +29,13 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
   const [error, setError] = useState<string | null>(null);
 
   const loadConversations = useCallback(async () => {
+    // Only load conversations if user is authenticated
+    const accessToken = localStorage.getItem('accessToken');
+    if (!accessToken) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -60,7 +67,33 @@ export const ConversationsProvider: React.FC<ConversationsProviderProps> = ({ ch
   }, [refreshConversations]);
 
   useEffect(() => {
-    loadConversations();
+    const accessToken = localStorage.getItem('accessToken');
+    if (accessToken) {
+      loadConversations();
+    } else {
+      setLoading(false);
+    }
+  }, [loadConversations]);
+
+  // Listen for login events to reload conversations
+  useEffect(() => {
+    const handleUserLoggedIn = () => {
+      loadConversations();
+    };
+
+    const handleUserLoggedOut = () => {
+      setConversations([]);
+      setError(null);
+      setLoading(false);
+    };
+
+    window.addEventListener('userLoggedIn', handleUserLoggedIn);
+    window.addEventListener('userLoggedOut', handleUserLoggedOut);
+
+    return () => {
+      window.removeEventListener('userLoggedIn', handleUserLoggedIn);
+      window.removeEventListener('userLoggedOut', handleUserLoggedOut);
+    };
   }, [loadConversations]);
 
   const value = useMemo<ConversationsContextType>(() => ({
