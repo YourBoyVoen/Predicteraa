@@ -47,13 +47,13 @@ NOTE: Move the files in deployment folder to the directory that contains both re
 
 3. **Build and start all services**
    ```bash
-   docker-compose up -d --build
+   docker compose up -d --build
    ```
 
 4. **Run database migrations and seeds**
    ```bash
-   docker-compose exec backend npm run migrate:latest
-   docker-compose exec backend npm run seed:run
+   docker compose exec backend npm run migrate:latest
+   docker compose exec backend npm run seed:run
    ```
 
 5. **Access the application**
@@ -66,53 +66,53 @@ NOTE: Move the files in deployment folder to the directory that contains both re
 
 ### Start all services
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ### Stop all services
 ```bash
-docker-compose down
+docker compose down
 ```
 
 ### View logs
 ```bash
 # All services
-docker-compose logs -f
+docker compose logs -f
 
 # Specific service
-docker-compose logs -f backend
-docker-compose logs -f frontend
-docker-compose logs -f fastapi
+docker compose logs -f backend
+docker compose logs -f frontend
+docker compose logs -f fastapi
 ```
 
 ### Rebuild services
 ```bash
 # Rebuild all
-docker-compose up -d --build
+docker compose up -d --build
 
 # Rebuild specific service
-docker-compose up -d --build backend
+docker compose up -d --build backend
 ```
 
 ### Database operations
 ```bash
 # Run migrations
-docker-compose exec backend npm run migrate:latest
+docker compose exec backend npm run migrate up
 
 # Run seeds
-docker-compose exec backend npm run seed:run
+docker compose exec backend npm run seed:run
 
-# Rollback migration
-docker-compose exec backend npm run migrate:down
+# Fresh migration
+docker compose exec backend npm run migrate:fresh
 ```
 
 ### Access service shell
 ```bash
 # Backend shell
-docker-compose exec backend sh
+docker compose exec backend sh
 
 # Database shell
-docker-compose exec postgres psql -U postgres -d predictive_maintenance
+docker compose exec postgres psql -U postgres -d predictive_maintenance
 ```
 
 ## Development Mode
@@ -134,7 +134,7 @@ For local development without Docker, you need to configure each repository's `.
 
 2. **Start PostgreSQL**
    ```bash
-   docker-compose up -d postgres
+   docker compose up -d postgres
    ```
 
 3. **Backend (hapi-capstone folder)**
@@ -203,22 +203,22 @@ Key environment variables (see `.env.example` for full list):
 # Check what's using the port
 netstat -ano | findstr :9000
 
-# Stop the process or change port in docker-compose.yml
+# Stop the process or change port in docker compose.yml
 ```
 
 ### Database connection issues
 ```bash
 # Check if postgres is healthy
-docker-compose ps
+docker compose ps
 
 # Check logs
-docker-compose logs postgres
+docker compose logs postgres
 ```
 
 ### Rebuild from scratch
 ```bash
-docker-compose down -v
-docker-compose up -d --build
+docker compose down -v
+docker compose up -d --build
 ```
 
 ## License

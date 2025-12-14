@@ -22,9 +22,7 @@ services:
 
   # FastAPI Inference Service
   fastapi:
-    build:
-      context: ./hapi-capstone
-      dockerfile: Dockerfile.fastapi
+    image: redcom1988/capstone-fastapi:latest
     container_name: predictive-maintenance-fastapi
     restart: unless-stopped
     ports:
@@ -40,9 +38,7 @@ services:
 
   # Hapi.js Backend API
   backend:
-    build:
-      context: ./hapi-capstone
-      dockerfile: Dockerfile.backend
+    image: redcom1988/capstone-backend:latest
     container_name: predictive-maintenance-backend
     restart: unless-stopped
     ports:
@@ -77,12 +73,7 @@ services:
 
   # React Frontend
   frontend:
-    build:
-      context: ./Predicteraa
-      dockerfile: Dockerfile
-      args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-localhost}
-        VITE_API_PORT: ${VITE_API_PORT:-9000}
+    image: redcom1988/capstone-frontend:latest
     container_name: predictive-maintenance-frontend
     restart: unless-stopped
     ports:
