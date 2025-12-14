@@ -15,9 +15,44 @@ export class ApiError extends Error {
 
 export class HttpClient {
   private baseURL: string;
+  private isRefreshing: boolean = false;
+  private refreshPromise: Promise<void> | null = null;
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
+  }
+
+  private async refreshAccessToken(): Promise<void> {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!refreshToken) {
+      // No refresh token, redirect to login
+      window.location.href = '/login';
+      throw new ApiError('No refresh token available', 401);
+    }
+
+    try {
+      const response = await fetch(`${this.baseURL}/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Token refresh failed');
+      }
+
+      const data = await response.json();
+      localStorage.setItem('accessToken', data.data.accessToken);
+      localStorage.setItem('refreshToken', data.data.refreshToken);
+    } catch (error) {
+      // Refresh failed, clear tokens and redirect to login
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      window.location.href = '/login';
+      throw new ApiError('Token refresh failed', 401);
+    }
   }
 
   private async request<T>(
@@ -39,6 +74,46 @@ export class HttpClient {
         },
         ...options,
       });
+
+      // Handle 401 - try to refresh token
+      if (response.status === 401 && endpoint !== '/auth/refresh') {
+        if (!this.isRefreshing) {
+          this.isRefreshing = true;
+          this.refreshPromise = this.refreshAccessToken();
+        }
+
+        try {
+          await this.refreshPromise;
+          this.isRefreshing = false;
+          this.refreshPromise = null;
+
+          // Retry the original request with new token
+          const newAccessToken = localStorage.getItem('accessToken');
+          const retryResponse = await fetch(url, {
+            headers: {
+              'Content-Type': 'application/json',
+              ...(newAccessToken && { 'Authorization': `Bearer ${newAccessToken}` }),
+              ...options.headers,
+            },
+            ...options,
+          });
+
+          if (!retryResponse.ok) {
+            const errorData = await retryResponse.json().catch(() => ({}));
+            throw new ApiError(
+              errorData.message || `HTTP ${retryResponse.status}: ${retryResponse.statusText}`,
+              retryResponse.status,
+              errorData
+            );
+          }
+
+          return retryResponse.json();
+        } catch (refreshError) {
+          this.isRefreshing = false;
+          this.refreshPromise = null;
+          throw refreshError;
+        }
+      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));

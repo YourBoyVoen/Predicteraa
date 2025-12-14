@@ -1,20 +1,35 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { authApi } from "../services";
 
 export default function LogoutPage() {
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setIsProcessing(true);
 
-    // Hapus token atau data login
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("userData");
+    try {
+      // Call backend logout API
+      const refreshToken = localStorage.getItem("refreshToken");
+      if (refreshToken) {
+        await authApi.logout({ refreshToken });
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Continue with logout even if API call fails
+    }
 
-    setTimeout(() => {
-      navigate("/login", { replace: true });
-    }, 700);
+    // Clear tokens from localStorage
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+
+    // Notify other components that user has logged out
+    window.dispatchEvent(new CustomEvent('userLoggedOut'));
+
+    // Navigate to login
+    navigate("/login", { replace: true });
+    setIsProcessing(false);
   };
 
   const handleCancel = () => {
