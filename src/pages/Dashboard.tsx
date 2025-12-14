@@ -1,6 +1,7 @@
 import Sidebar from "../components/layout/Sidebar";
 import { Menu, Wrench, Cpu } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   LineChart,
   Line,
@@ -14,6 +15,7 @@ import {
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState("January");
+  const navigate = useNavigate();
 
   // Dummy data for 3 machines
   const dataMachineA = [
@@ -52,14 +54,22 @@ export default function Dashboard() {
       {/* Main */}
       <div className="flex-1 min-h-screen bg-gray-50 p-4 md:p-10">
 
-        {/* Sidebar Toggle Button (Mobile) */}
-        <div className="flex items-center justify-between mb-5">
-          <button
-            className="md:hidden p-2 rounded-lg border"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <Menu size={24} />
-          </button>
+        {/* Header with Breadcrumb */}
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <button
+              className="md:hidden p-2 rounded-lg border"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu size={24} />
+            </button>
+            <div>
+              {/* Breadcrumb */}
+              <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-2">
+                <span className="text-gray-900 font-medium">Dashboard</span>
+              </nav>
+            </div>
+          </div>
 
           <h1 className="text-xl md:text-3xl font-bold">Dashboard</h1>
         </div>

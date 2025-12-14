@@ -35,6 +35,16 @@ export interface CreateMachineResponse {
   };
 }
 
+export interface UpdateMachinePayload {
+  name: string;
+  type: string;
+}
+
+export interface UpdateMachineResponse {
+  status: string;
+  message: string;
+}
+
 export interface DeleteResponse {
   status: string;
   message: string;
@@ -55,6 +65,11 @@ export const machinesApi = {
   // POST /machines - Create a new machine
   create: async (payload: CreateMachinePayload): Promise<CreateMachineResponse> => {
     return httpClient.post<CreateMachineResponse>('/machines', payload);
+  },
+
+  // PUT /machines/{id} - Update machine by ID
+  update: async (id: number | string, payload: UpdateMachinePayload): Promise<UpdateMachineResponse> => {
+    return httpClient.put<UpdateMachineResponse>(`/machines/${id}`, payload);
   },
 
   // DELETE /machines/{id} - Delete machine by ID

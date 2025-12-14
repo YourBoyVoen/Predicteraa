@@ -1,6 +1,10 @@
-import React, { useState } from "react";
-import { Plus, Pencil, Trash2, X, Menu } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Plus, X, Menu, ChevronRight, Zap } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/layout/Sidebar";
+import { diagnosticsApi } from "../services/diagnosticsApi";
+import { useSnackbar } from "../contexts/SnackbarContext";
+import { machinesApi } from "../services/machinesApi";
 
 type Diagnostic = {
   id: number;
@@ -19,7 +23,7 @@ type Machine = {
   name: string;
   type: string;
   timestamp: string;
-  diagnostics?: Diagnostic[];
+  latestDiagnostic?: Diagnostic | null;
 };
 
 type ModalWrapperProps = {
@@ -29,60 +33,50 @@ type ModalWrapperProps = {
 
 const MachinePage: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
+  const { showSnackbar } = useSnackbar();
 
   // Modal States
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showDetailModal, setShowDetailModal] = useState<Machine | null>(null);
-  const [showEditModal, setShowEditModal] = useState<Machine | null>(null);
+
+  // Loading states
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Dummy data
-  const [machines, setMachines] = useState<Machine[]>([
-    {
-      id: 1,
-      name: "Main Machine",
-      type: "L",
-      timestamp: "2025-12-12T10:00:00Z",
-      diagnostics: [
-        {
-          id: 1,
-          machine_id: 1,
-          timestamp: "2025-12-12T10:30:00Z",
-          risk_score: 0.2,
-          failure_prediction: { predicted: false },
-          failure_type_probabilities: { "Normal": 0.8, "Failure A": 0.2 },
-          most_likely_failure: "Normal",
-          recommended_action: "Continue monitoring",
-          feature_contributions: { feature1: 0.1, feature2: 0.05 },
-        },
-      ],
-    },
-    {
-      id: 2,
-      name: "Backup Machine",
-      type: "M",
-      timestamp: "2025-12-12T09:00:00Z",
-      diagnostics: [
-        {
-          id: 2,
-          machine_id: 2,
-          timestamp: "2025-12-12T09:45:00Z",
-          risk_score: 0.8,
-          failure_prediction: { predicted: true },
-          failure_type_probabilities: { "Normal": 0.2, "Failure B": 0.8 },
-          most_likely_failure: "Failure B",
-          recommended_action: "Schedule maintenance",
-          feature_contributions: { feature3: 0.3, feature4: 0.2 },
-        },
-      ],
-    },
-    {
-      id: 3,
-      name: "New Machine",
-      type: "H",
-      timestamp: "2025-12-12T11:00:00Z",
-      diagnostics: [],
-    },
-  ]);
+  const [machines, setMachines] = useState<Machine[]>([]);
+
+  // Fetch machines and their latest diagnostics
+  const fetchMachines = async () => {
+    setLoading(true);
+    try {
+      const machinesResponse = await machinesApi.getAll();
+      const diagnosticsResponse = await diagnosticsApi.getAllLatest();
+      
+      // Create a map of machine_id -> latest diagnostic
+      const diagnosticsMap = new Map<number, Diagnostic>();
+      diagnosticsResponse.data.diagnostics.forEach((diag) => {
+        diagnosticsMap.set(diag.machine_id, diag);
+      });
+      
+      // Combine machines with their diagnostics
+      const machinesWithDiagnostics = machinesResponse.data.machines.map((machine) => ({
+        ...machine,
+        latestDiagnostic: diagnosticsMap.get(machine.id) || null,
+      }));
+      
+      setMachines(machinesWithDiagnostics);
+    } catch (error) {
+      console.error('Failed to fetch machines:', error);
+      showSnackbar('Failed to load machines', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMachines();
+  }, []);
 
   // Add Machine Form
   const [newMachine, setNewMachine] = useState<Partial<Machine>>({
@@ -91,35 +85,58 @@ const MachinePage: React.FC = () => {
   });
 
   /* Add Machine */
-  const addMachine = () => {
+  const addMachine = async () => {
     if (!newMachine.name || !newMachine.name.trim()) return;
 
-    const created: Machine = {
-      id: Date.now(),
-      name: newMachine.name!.trim(),
-      type: newMachine.type || "Unknown",
-      timestamp: new Date().toISOString(),
-      diagnostics: [],
-    };
+    try {
+      await machinesApi.create({
+        name: newMachine.name.trim(),
+        type: newMachine.type || "Unknown",
+      });
 
-    setMachines((prev) => [...prev, created]);
-
-    setShowAddModal(false);
-    setNewMachine({ name: "", type: "" });
+      showSnackbar('Machine added successfully', 'success');
+      setShowAddModal(false);
+      setNewMachine({ name: "", type: "" });
+      
+      // Refresh the list
+      fetchMachines();
+    } catch (error) {
+      console.error('Failed to add machine:', error);
+      showSnackbar('Failed to add machine', 'error');
+    }
   };
 
-  /* Delete Machine */
-  const deleteMachine = (id: number) => {
-    setMachines((prev) => prev.filter((m) => m.id !== id));
-  };
-
-  /* Edit Machine */
-  const saveEditMachine = () => {
-    if (!showEditModal) return;
-    setMachines((prev) =>
-      prev.map((m) => (m.id === showEditModal.id ? { ...showEditModal } : m))
-    );
-    setShowEditModal(null);
+  /* Bulk Run Diagnostics */
+  const runBulkDiagnostics = async () => {
+    setBulkLoading(true);
+    try {
+      const response = await diagnosticsApi.runBulkDiagnostics();
+      console.log('Bulk diagnostics result:', response);
+      
+      // Show detailed results
+      if (response.data.successCount > 0) {
+        showSnackbar(
+          `Bulk diagnostics completed: ${response.data.successCount} succeeded, ${response.data.failureCount} failed`,
+          response.data.failureCount === 0 ? 'success' : 'warning'
+        );
+      } else {
+        showSnackbar('All bulk diagnostics failed. Check if machines have sensor data.', 'error');
+      }
+      
+      // Log failures for debugging
+      if (response.data.failed.length > 0) {
+        console.warn('Failed diagnostics:', response.data.failed);
+      }
+      
+      // Refresh machines to show updated diagnostics
+      await fetchMachines();
+      
+    } catch (error) {
+      console.error('Bulk diagnostics failed:', error);
+      showSnackbar('Failed to run bulk diagnostics. Please try again.', 'error');
+    } finally {
+      setBulkLoading(false);
+    }
   };
 
   return (
@@ -139,31 +156,60 @@ const MachinePage: React.FC = () => {
               <Menu size={24} />
             </button>
             <div>
+              {/* Breadcrumb */}
+              <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-2">
+                <button
+                  onClick={() => navigate("/dashboard")}
+                  className="hover:text-blue-600 transition-colors"
+                >
+                  Dashboard
+                </button>
+                <ChevronRight size={16} />
+                <span className="text-gray-900 font-medium">Machines</span>
+              </nav>
               <h1 className="text-3xl font-bold text-gray-800">Machine Settings</h1>
               <p className="text-gray-600">Manage your machines & performance</p>
             </div>
           </div>
 
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition shadow"
-          >
-            <Plus className="w-4 h-4" />
-            Add Machine
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={runBulkDiagnostics}
+              disabled={bulkLoading}
+              className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-xl hover:bg-green-700 transition shadow disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Zap className="w-4 h-4" />
+              {bulkLoading ? 'Running...' : 'Run Bulk Diagnostics'}
+            </button>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition shadow"
+            >
+              <Plus className="w-4 h-4" />
+              Add Machine
+            </button>
+          </div>
         </div>
 
         {/* Machine List */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {machines.map((m) => (
-            <MachineCard
-              key={m.id}
-              machine={m}
-              onDetail={() => setShowDetailModal(m)}
-              onEdit={() => setShowEditModal(m)}
-              onDelete={() => deleteMachine(m.id)}
-            />
-          ))}
+          {loading ? (
+            <div className="col-span-2 text-center py-10">
+              <p className="text-gray-500">Loading machines...</p>
+            </div>
+          ) : machines.length === 0 ? (
+            <div className="col-span-2 text-center py-10">
+              <p className="text-gray-500">No machines found. Add your first machine!</p>
+            </div>
+          ) : (
+            machines.map((m) => (
+              <MachineCard
+                key={m.id}
+                machine={m}
+                onDetail={() => navigate(`/machine/${m.id}`)}
+              />
+            ))
+          )}
         </div>
       </div>
 
@@ -195,66 +241,6 @@ const MachinePage: React.FC = () => {
           </div>
         </ModalWrapper>
       )}
-
-      {/* DETAIL MODAL */}
-      {showDetailModal && (
-        <ModalWrapper onClose={() => setShowDetailModal(null)}>
-          <h2 className="text-xl font-bold mb-2">{showDetailModal.name}</h2>
-
-          <p className="text-gray-700 mb-2">
-            <strong>Type:</strong> {showDetailModal.type}
-          </p>
-          <p className="text-gray-700 mb-2">
-            <strong>Timestamp:</strong> {new Date(showDetailModal.timestamp).toLocaleString()}
-          </p>
-          {showDetailModal.diagnostics && showDetailModal.diagnostics.length > 0 && (
-            <>
-              <h3 className="text-lg font-semibold mt-4 mb-2">Latest Diagnostic</h3>
-              <p className="text-gray-700 mb-2">
-                <strong>Risk Score:</strong> {showDetailModal.diagnostics[0].risk_score.toFixed(2)}
-              </p>
-              <p className="text-gray-700 mb-2">
-                <strong>Most Likely Failure:</strong> {showDetailModal.diagnostics[0].most_likely_failure}
-              </p>
-              <p className="text-gray-700 mb-2">
-                <strong>Recommended Action:</strong> {showDetailModal.diagnostics[0].recommended_action}
-              </p>
-              <p className="text-gray-700">
-                <strong>Timestamp:</strong> {new Date(showDetailModal.diagnostics[0].timestamp).toLocaleString()}
-              </p>
-            </>
-          )}
-        </ModalWrapper>
-      )}
-
-      {/* EDIT MODAL */}
-      {showEditModal && (
-        <ModalWrapper onClose={() => setShowEditModal(null)}>
-          <h2 className="text-xl font-bold mb-4">Edit Machine</h2>
-
-          <MachineForm
-            machine={showEditModal}
-            setMachine={(upd) =>
-              setShowEditModal((prev) => (prev ? { ...prev, ...upd } : prev))
-            }
-          />
-
-          <div className="flex justify-end gap-3 mt-4">
-            <button
-              className="px-4 py-2 rounded-xl border"
-              onClick={() => setShowEditModal(null)}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={saveEditMachine}
-              className="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700"
-            >
-              Save Changes
-            </button>
-          </div>
-        </ModalWrapper>
-      )}
     </div>
   );
 };
@@ -263,12 +249,10 @@ const MachinePage: React.FC = () => {
 type MachineCardProps = {
   machine: Machine;
   onDetail: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
 };
 
-const MachineCard: React.FC<MachineCardProps> = ({ machine, onDetail, onEdit, onDelete }) => {
-  const latestDiagnostic = machine.diagnostics?.[0];
+const MachineCard: React.FC<MachineCardProps> = ({ machine, onDetail }) => {
+  const latestDiagnostic = machine.latestDiagnostic;
   const hasDiagnostics = !!latestDiagnostic;
   
   const riskScore = latestDiagnostic?.risk_score ?? 0;
@@ -287,20 +271,11 @@ const MachineCard: React.FC<MachineCardProps> = ({ machine, onDetail, onEdit, on
       : "bg-gray-100 text-gray-700";
 
   return (
-    <div className="bg-white p-5 rounded-2xl shadow hover:shadow-md transition">
+    <div className="bg-white p-5 rounded-2xl shadow hover:shadow-md transition cursor-pointer" onClick={onDetail}>
       <div className="flex justify-between items-start">
-        <h3 className="text-lg font-bold cursor-pointer" onClick={onDetail}>
+        <h3 className="text-lg font-bold">
           {machine.name}
         </h3>
-
-        <div className="flex gap-2">
-          <button onClick={onEdit} aria-label={`Edit ${machine.name}`}>
-            <Pencil className="w-5 h-5 text-blue-600 hover:text-blue-800" />
-          </button>
-          <button onClick={onDelete} aria-label={`Delete ${machine.name}`}>
-            <Trash2 className="w-5 h-5 text-red-600 hover:text-red-800" />
-          </button>
-        </div>
       </div>
 
       <div className={`inline-block px-3 py-1 text-sm rounded-full mt-3 ${healthColor}`}>
@@ -331,7 +306,7 @@ const MachineCard: React.FC<MachineCardProps> = ({ machine, onDetail, onEdit, on
       {hasDiagnostics ? (
         <div className="mt-4 text-sm text-gray-600">
           <p><strong>Risk Score:</strong> {riskScore.toFixed(2)}</p>
-          <p><strong>Most Likely:</strong> {latestDiagnostic.most_likely_failure}</p>
+          <p><strong>Most Likely:</strong> {latestDiagnostic.most_likely_failure || "No Failure"}</p>
         </div>
       ) : (
         <div className="mt-4 text-sm text-gray-500">

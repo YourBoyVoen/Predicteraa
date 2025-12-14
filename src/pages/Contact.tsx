@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/layout/Sidebar";
-import { Phone } from "lucide-react";
+import { Phone, ChevronRight, Menu } from "lucide-react";
 
 export default function ContactPage() {
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -14,15 +16,28 @@ export default function ContactPage() {
       {/* Main Content */}
       <div className="flex-1 min-h-screen bg-gray-50 p-4 md:p-10 flex flex-col">
 
-        {/* Top Bar */}
-        <div className="flex items-center justify-between mb-6">
-          <button
-            className="md:hidden p-2 bg-white shadow rounded-lg"
-            onClick={() => setSidebarOpen(true)}
-          >
-            ☰
-          </button>
-          <h1 className="text-2xl md:text-3xl font-bold">Contact</h1>
+        {/* Header with Breadcrumb */}
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <button
+              className="md:hidden p-2 rounded-lg border"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu size={24} />
+            </button>
+            <div>
+              {/* Breadcrumb */}
+              <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-2">
+                <button onClick={() => navigate("/")} className="hover:text-blue-600">
+                  Dashboard
+                </button>
+                <ChevronRight size={16} />
+                <span className="text-gray-900 font-medium">Contact</span>
+              </nav>
+            </div>
+          </div>
+
+          <h1 className="text-xl md:text-3xl font-bold">Contact</h1>
         </div>
 
         {/* Centered Contact Box */}

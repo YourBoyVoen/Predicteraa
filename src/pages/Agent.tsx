@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Send, Loader2, MessageSquare } from "lucide-react";
+import { Send, Loader2, Menu, ChevronRight } from "lucide-react";
 import Sidebar from "../components/layout/Sidebar";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { agentApi, ApiError, type Conversation } from "../services";
@@ -64,9 +64,9 @@ const TypewriterText: React.FC<{ text: string; speed?: number; onComplete?: () =
         components={{
           // Custom styling for markdown elements
           p: ({node, ...props}) => <p className="mb-3 last:mb-0 leading-relaxed" {...props} />,
-          ul: ({node, ...props}) => <ul className="list-disc list-inside mb-3 last:mb-0 space-y-1" {...props} />,
-          ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-3 last:mb-0 space-y-1" {...props} />,
-          li: ({node, ...props}) => <li className="ml-2" {...props} />,
+          ul: ({node, ...props}) => <ul className="list-disc list-outside mb-3 last:mb-0 space-y-1 pl-6" {...props} />,
+          ol: ({node, ...props}) => <ol className="list-decimal list-outside mb-3 last:mb-0 space-y-1 pl-6" {...props} />,
+          li: ({node, ...props}) => <li className="ml-0" {...props} />,
           strong: ({node, ...props}) => <strong className="font-semibold text-gray-900" {...props} />,
           em: ({node, ...props}) => <em className="italic" {...props} />,
           h1: ({node, ...props}) => <h1 className="text-xl font-bold mb-2 mt-4 first:mt-0" {...props} />,
@@ -278,20 +278,37 @@ const AgentPage = () => {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex-1 flex flex-col">
-        {/* Mobile Menu & Conversations Button */}
-        <div className="md:hidden fixed top-6 left-6 z-10 flex gap-2">
-          <button
-            className="p-2 bg-white shadow rounded-lg"
-            onClick={() => setSidebarOpen(true)}
-          >
-            ☰
-          </button>
-        </div>
-
         {/* LAYOUT: Empty State (centered) */}
         {!hasMessages && (
-          <div className="flex-1 flex items-center justify-center px-6">
-            <div className="w-full max-w-4xl">
+          <div className="flex-1 min-h-screen bg-gray-50 flex flex-col p-4 md:p-10">
+            {/* Header with Breadcrumb - Sticky */}
+            <div className="sticky top-0 bg-gray-50 z-10 mb-4 pb-2">
+              <div className="flex items-center gap-3">
+                <button
+                  className="md:hidden p-2 rounded-lg border"
+                  onClick={() => setSidebarOpen(true)}
+                >
+                  <Menu size={24} />
+                </button>
+                <div>
+                  {/* Breadcrumb */}
+                  <nav className="flex items-center space-x-2 text-sm text-gray-600">
+                    <button
+                      onClick={() => navigate("/")}
+                      className="hover:text-blue-600 transition-colors"
+                    >
+                      Dashboard
+                    </button>
+                    <ChevronRight size={16} />
+                    <span className="text-gray-900 font-medium">Agent</span>
+                  </nav>
+                </div>
+              </div>
+            </div>
+
+            {/* Centered Content */}
+            <div className="flex-1 flex items-center justify-center">
+              <div className="w-full max-w-4xl">
               <div className="text-center mb-10">
                 <h1 className="text-3xl font-bold text-gray-800">
                   Ask PredictAgent Anything
@@ -347,30 +364,55 @@ const AgentPage = () => {
                 </div>
               )}
             </div>
+            </div>
           </div>
         )}
 
         {/* LAYOUT: With Messages (top header + scrollable messages + bottom input) */}
         {hasMessages && (
           <>
-            {/* Header */}
-            <div className="pt-24 md:pt-40 pb-6 px-6">
-              <div className="max-w-4xl mx-auto">
-                <div className="text-center mb-6">
-                  <h1 className="text-3xl font-bold text-gray-800">
-                    {currentConversation?.title || `Conversation ${conversationId}`}
-                  </h1>
+            {/* Header with Breadcrumb - Sticky */}
+            <div className="sticky top-0 bg-gray-50 z-10 pt-6 md:pt-10 pb-4 px-4 md:px-10">
+              <div className="flex items-center gap-3">
+                <button
+                  className="md:hidden p-2 rounded-lg border"
+                  onClick={() => setSidebarOpen(true)}
+                >
+                  <Menu size={24} />
+                </button>
+                <div>
+                  {/* Breadcrumb with Conversation Title */}
+                  <nav className="flex items-center space-x-2 text-sm text-gray-600">
+                    <button
+                      onClick={() => navigate("/")}
+                      className="hover:text-blue-600 transition-colors"
+                    >
+                      Dashboard
+                    </button>
+                    <ChevronRight size={16} />
+                    <span className="hover:text-blue-600 transition-colors cursor-pointer" onClick={() => navigate('/agent')}>
+                      Agent
+                    </span>
+                    {conversationId && (
+                      <>
+                        <ChevronRight size={16} />
+                        <span className="text-gray-900 font-medium">
+                          {currentConversation?.title || 'New Conversation'}
+                        </span>
+                      </>
+                    )}
+                  </nav>
                   {machineId && (
-                    <p className="text-blue-600 font-semibold text-sm mt-2">
-                      You are asking about Machine #{machineId}
+                    <p className="text-blue-600 font-semibold text-xs mt-1">
+                      Machine #{machineId}
                     </p>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Messages - Scrollable */}
-            <div className="flex-1 overflow-y-auto px-6 pb-6">
+            {/* Messages */}
+            <div className="px-6 pb-6 pt-32">
               <div className="max-w-4xl mx-auto">
                 <div className="space-y-6 pb-32">
                   {messages.map((msg) => (
@@ -391,9 +433,9 @@ const AgentPage = () => {
                                 components={{
                                   // Custom styling for markdown elements
                                   p: ({node, ...props}) => <p className="mb-3 last:mb-0 leading-relaxed" {...props} />,
-                                  ul: ({node, ...props}) => <ul className="list-disc list-inside mb-3 last:mb-0 space-y-1" {...props} />,
-                                  ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-3 last:mb-0 space-y-1" {...props} />,
-                                  li: ({node, ...props}) => <li className="ml-2" {...props} />,
+                                  ul: ({node, ...props}) => <ul className="list-disc list-outside mb-3 last:mb-0 space-y-1 pl-6" {...props} />,
+                                  ol: ({node, ...props}) => <ol className="list-decimal list-outside mb-3 last:mb-0 space-y-1 pl-6" {...props} />,
+                                  li: ({node, ...props}) => <li className="ml-0" {...props} />,
                                   strong: ({node, ...props}) => <strong className="font-semibold text-gray-900" {...props} />,
                                   em: ({node, ...props}) => <em className="italic" {...props} />,
                                   h1: ({node, ...props}) => <h1 className="text-xl font-bold mb-2 mt-4 first:mt-0" {...props} />,
@@ -452,7 +494,7 @@ const AgentPage = () => {
               </div>
             </div>
 
-            {/* Bottom Bar - Fixed */}
+            {/* Bottom Input Bar - Fixed */}
             <div className="fixed bottom-0 left-0 md:left-64 right-0 bg-gray-50 px-6 py-4">
               <div className="max-w-4xl mx-auto">
                 {/* Suggestions above input */}

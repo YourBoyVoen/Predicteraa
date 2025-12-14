@@ -24,6 +24,9 @@ export default function LogoutPage() {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
 
+    // Notify other components that user has logged out
+    window.dispatchEvent(new CustomEvent('userLoggedOut'));
+
     // Navigate to login
     navigate("/login", { replace: true });
     setIsProcessing(false);

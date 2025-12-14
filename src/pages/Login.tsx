@@ -2,46 +2,73 @@ import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { authApi, ApiError } from "../services";
+import { useSnackbar } from "../contexts/SnackbarContext";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { showSnackbar } = useSnackbar();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    
+    // Don't proceed if already loading
+    if (isLoading) return;
+    
     setIsLoading(true);
 
     try {
       const response = await authApi.login({ username, password });
       
-      // Store tokens in localStorage
-      localStorage.setItem('accessToken', response.data.accessToken);
-      localStorage.setItem('refreshToken', response.data.refreshToken);
-      
-      // Navigate to dashboard
-      navigate("/dashboard");
+      // Only proceed if we got a successful response
+      if (response?.data?.accessToken && response?.data?.refreshToken) {
+        // Store tokens in localStorage
+        localStorage.setItem('accessToken', response.data.accessToken);
+        localStorage.setItem('refreshToken', response.data.refreshToken);
+        
+        // Show success message
+        showSnackbar('Login successful! Redirecting...', 'success');
+        
+        // Notify other components that user has logged in
+        window.dispatchEvent(new CustomEvent('userLoggedIn'));
+        
+        // Small delay to show success message before navigation
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 500);
+      } else {
+        throw new Error('Invalid response from server');
+      }
     } catch (err) {
       console.error("Login error:", err);
       
+      // Stay on login page and show error via snackbar
+      let errorMessage = "Login failed. Please try again.";
+      
       if (err instanceof ApiError) {
         if (err.status === 401) {
-          setError("Invalid username or password");
+          errorMessage = "Invalid username or password";
         } else if (err.status === 400) {
-          setError("Please enter both username and password");
-        } else {
-          setError("Login failed. Please try again.");
+          errorMessage = "Please enter both username and password";
+        } else if (err.status >= 500) {
+          errorMessage = "Server error. Please try again later.";
         }
-      } else {
-        setError("Network error. Please check your connection.");
+      } else if (err instanceof Error) {
+        if (err.message.includes('fetch') || err.message.includes('network')) {
+          errorMessage = "Network error. Please check your connection.";
+        }
       }
-    } finally {
+      
+      showSnackbar(errorMessage, 'error');
       setIsLoading(false);
+      return; // Explicitly return to prevent any navigation
     }
+    
+    // Only set loading to false after successful navigation delay
+    // (isLoading state will be cleaned up when component unmounts)
   };
 
   return (
@@ -60,13 +87,6 @@ export default function Login() {
             Enter your credentials to continue
           </p>
         </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-600">{error}</p>
-          </div>
-        )}
 
         {/* Username */}
         <div className="mb-4">

@@ -53,9 +53,11 @@ export default function Sidebar({
         </button>
 
         {/* Logo */}
-        <h1 className="text-2xl font-bold text-blue-600 mb-8 md:mb-10">
-          Predictera
-        </h1>
+        <Link to="/dashboard" className="block">
+          <h1 className="text-2xl font-bold text-blue-600 mb-8 md:mb-10 hover:text-blue-700 transition-colors cursor-pointer">
+            Predictera
+          </h1>
+        </Link>
 
         {/* Main menu */}
         <div className="space-y-2">
@@ -63,7 +65,7 @@ export default function Sidebar({
             icon={<LayoutDashboard size={18} />}
             label="Dashboard"
             to="/dashboard"
-            active={location.pathname === "/dashboard"}
+            active={location.pathname === "/dashboard" || location.pathname === "/"}
           />
 
           <SidebarItem
