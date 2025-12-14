@@ -1,5 +1,5 @@
 import Sidebar from "../components/layout/Sidebar";
-import { Menu, Wrench, Cpu } from "lucide-react";
+import { Menu, Cpu } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -182,8 +182,8 @@ function StatCard({
 
 /* Machine Chart */
 type ChartPoint = {
-  day: string;
-  value: number;
+  health: number;
+  date: string;
 };
 
 function MachineChart({
@@ -201,10 +201,10 @@ function MachineChart({
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="day" />
+            <XAxis dataKey="date" />
             <YAxis />
             <Tooltip />
-            <Line type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={3} />
+            <Line type="monotone" dataKey="health" stroke="#2563eb" strokeWidth={3} />
           </LineChart>
         </ResponsiveContainer>
       </div>
