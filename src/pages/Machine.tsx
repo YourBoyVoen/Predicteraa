@@ -2,27 +2,10 @@ import React, { useState, useEffect } from "react";
 import { Plus, X, Menu, ChevronRight, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/layout/Sidebar";
-import { diagnosticsApi } from "../services/diagnosticsApi";
+import { diagnosticsApi, type Diagnostic } from "../services/diagnosticsApi";
 import { useSnackbar } from "../contexts/SnackbarContext";
 import { machinesApi } from "../services/machinesApi";
 
-type Diagnostic = {
-  id: number;
-  machine_id: number;
-  timestamp: string;
-  risk_score: number;
-  failure_prediction: { predicted: boolean };
-  failure_type_probabilities: Record<string, number>;
-  most_likely_failure?: string;
-  recommended_action?: string;
-  feature_contributions: Record<string, number>;
-};
-type SensorData = {
-  id: number;
-  machine_id: number;
-  timestamp: string;
-  data: Record<string, number | string>;
-};
 
 type Machine = {
   id: number;

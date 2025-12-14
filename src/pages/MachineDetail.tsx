@@ -90,6 +90,7 @@ const MachineDetailPage: React.FC = () => {
 
   const confirmRunDiagnostics = async () => {
     setShowDiagnosticsConfirmModal(false);
+    if (!id) return;
 
     try {
       setRunningDiagnostics(true);
@@ -147,6 +148,7 @@ const MachineDetailPage: React.FC = () => {
 
   const confirmDeleteMachine = async () => {
     setShowDeleteConfirmModal(false);
+    if (!id) return;
 
     try {
       await machinesApi.delete(id);

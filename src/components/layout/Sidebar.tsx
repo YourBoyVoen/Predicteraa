@@ -4,8 +4,6 @@ import {
   History,
   Cpu,
   Bell,
-  Calendar,
-  Phone,
   X,
   LogOut,
   MessageSquare,
