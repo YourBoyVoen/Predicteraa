@@ -61,11 +61,19 @@ export default function Sidebar({
 
         {/* Main menu */}
         <div className="space-y-2">
+
           <SidebarItem
             icon={<LayoutDashboard size={18} />}
             label="Dashboard"
             to="/dashboard"
             active={location.pathname === "/dashboard" || location.pathname === "/"}
+          />
+
+          <SidebarItem
+            icon={<Users size={18} />}
+            label="User List"
+            to="/users"
+            active={location.pathname === "/users"}
           />
 
           <SidebarItem
@@ -157,7 +165,7 @@ function SidebarItem({
     <Link to={to}>
       <div
         className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition
-        ${active ? "bg-blue-600 text-white" : "text-gray-700 hover:bg-blue-300"}`}
+        ${active ? "bg-blue-600 text-white" : "text-gray-700 hover:bg-blue-600 hover:text-white"}`}
       >
         {icon}
         <span className="font-medium">{label}</span>

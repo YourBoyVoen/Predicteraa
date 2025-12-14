@@ -11,11 +11,17 @@ type Diagnostic = {
   machine_id: number;
   timestamp: string;
   risk_score: number;
-  failure_prediction: any; // JSONB
-  failure_type_probabilities: any; // JSONB
+  failure_prediction: { predicted: boolean };
+  failure_type_probabilities: Record<string, number>;
   most_likely_failure?: string;
   recommended_action?: string;
-  feature_contributions: any; // JSONB
+  feature_contributions: Record<string, number>;
+};
+type SensorData = {
+  id: number;
+  machine_id: number;
+  timestamp: string;
+  data: Record<string, number | string>;
 };
 
 type Machine = {
