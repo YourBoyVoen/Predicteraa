@@ -8,6 +8,7 @@ import AgentPage from "../pages/Agent";
 import MachinePage from "../pages/Machine";
 import HistoryPage from "../pages/History";
 import NotificationPage from "../pages/Notification";
+import UserList from "../pages/UserList";
 
 const AppRouter = () => {
   return (
@@ -18,6 +19,7 @@ const AppRouter = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/logout" element={<LogoutPage />} />
       <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/users" element={<UserList />} />
       <Route path="/agent" element={<AgentPage />} />
       <Route path="/machine" element={<MachinePage />} />
       <Route path="/history" element={<HistoryPage />} />

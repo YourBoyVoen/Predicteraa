@@ -7,11 +7,17 @@ type Diagnostic = {
   machine_id: number;
   timestamp: string;
   risk_score: number;
-  failure_prediction: any; // JSONB
-  failure_type_probabilities: any; // JSONB
+  failure_prediction: { predicted: boolean };
+  failure_type_probabilities: Record<string, number>;
   most_likely_failure?: string;
   recommended_action?: string;
-  feature_contributions: any; // JSONB
+  feature_contributions: Record<string, number>;
+};
+type SensorData = {
+  id: number;
+  machine_id: number;
+  timestamp: string;
+  data: Record<string, number | string>;
 };
 
 type Machine = {
@@ -20,6 +26,7 @@ type Machine = {
   type: string;
   timestamp: string;
   diagnostics?: Diagnostic[];
+  sensors?: SensorData[];
 };
 
 type ModalWrapperProps = {
@@ -55,6 +62,14 @@ const MachinePage: React.FC = () => {
           feature_contributions: { feature1: 0.1, feature2: 0.05 },
         },
       ],
+      sensors: [
+        {
+          id: 1,
+          machine_id: 1,
+          timestamp: "2025-12-12T10:10:00Z",
+          data: { temperature: 70, vibration: 0.02 },
+        },
+      ],
     },
     {
       id: 2,
@@ -74,6 +89,14 @@ const MachinePage: React.FC = () => {
           feature_contributions: { feature3: 0.3, feature4: 0.2 },
         },
       ],
+      sensors: [
+        {
+          id: 2,
+          machine_id: 2,
+          timestamp: "2025-12-12T09:30:00Z",
+          data: { temperature: 80, vibration: 0.05 },
+        },
+      ],
     },
     {
       id: 3,
@@ -81,8 +104,16 @@ const MachinePage: React.FC = () => {
       type: "H",
       timestamp: "2025-12-12T11:00:00Z",
       diagnostics: [],
+      sensors: [],
     },
   ]);
+  // Sensor Data Modal States
+  const [showSensorModal, setShowSensorModal] = useState<Machine | null>(null);
+  const [showAddSensorModal, setShowAddSensorModal] = useState<Machine | null>(null);
+
+  // Manual Diagnostic Modal
+  const [showManualDiagModal, setShowManualDiagModal] = useState<Machine | null>(null);
+  const [manualDiagForm, setManualDiagForm] = useState<{ [key: string]: string | number }>({ risk_score: 0, most_likely_failure: '', recommended_action: '' });
 
   // Add Machine Form
   const [newMachine, setNewMachine] = useState<Partial<Machine>>({
@@ -162,8 +193,180 @@ const MachinePage: React.FC = () => {
               onDetail={() => setShowDetailModal(m)}
               onEdit={() => setShowEditModal(m)}
               onDelete={() => deleteMachine(m.id)}
+              onViewSensors={() => setShowSensorModal(m)}
+              onAddSensor={() => setShowAddSensorModal(m)}
+              onManualDiagnostic={() => setShowManualDiagModal(m)}
             />
           ))}
+              {/* SENSOR DATA MODAL */}
+              {showSensorModal && (
+                <ModalWrapper onClose={() => setShowSensorModal(null)}>
+                  <h2 className="text-xl font-bold mb-4">Sensor Data - {showSensorModal.name}</h2>
+                  {showSensorModal.sensors && showSensorModal.sensors.length > 0 ? (
+                    <div className="overflow-x-auto max-h-64">
+                      <table className="min-w-full text-sm">
+                        <thead>
+                          <tr>
+                            <th className="px-2 py-1 border">Timestamp</th>
+                            <th className="px-2 py-1 border">air_temp</th>
+                            <th className="px-2 py-1 border">process_temp</th>
+                            <th className="px-2 py-1 border">rotational_speed</th>
+                            <th className="px-2 py-1 border">torque</th>
+                            <th className="px-2 py-1 border">tool_wear</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {showSensorModal.sensors.map((s) => (
+                            <tr key={s.id}>
+                              <td className="px-2 py-1 border">{new Date(s.timestamp).toLocaleString()}</td>
+                              <td className="px-2 py-1 border">{s.data.air_temp}</td>
+                              <td className="px-2 py-1 border">{s.data.process_temp}</td>
+                              <td className="px-2 py-1 border">{s.data.rotational_speed}</td>
+                              <td className="px-2 py-1 border">{s.data.torque}</td>
+                              <td className="px-2 py-1 border">{s.data.tool_wear}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500">No sensor data available.</p>
+                  )}
+                </ModalWrapper>
+              )}
+
+              {/* ADD SENSOR DATA MODAL */}
+              {showAddSensorModal && (
+                <ModalWrapper onClose={() => { setShowAddSensorModal(null); }}>
+                  <h2 className="text-xl font-bold mb-4">Add Sensor Data - {showAddSensorModal.name}</h2>
+                  <form
+                    onSubmit={e => {
+                      e.preventDefault();
+                      if (!showAddSensorModal) return;
+                      const timestamp = new Date().toISOString();
+                      const machineId = showAddSensorModal.id;
+                      // Generate random sensor values
+                      const sensorPayload = {
+                        machine_id: machineId,
+                        air_temp: 298.0 + (Math.random() * 4 - 2), // 296-300K
+                        process_temp: 308.0 + (Math.random() * 6 - 3), // 305-311K
+                        rotational_speed: 1500 + Math.floor(Math.random() * 100), // 1500-1600 RPM
+                        torque: 40.0 + (Math.random() * 10 - 5), // 35-45 Nm
+                        tool_wear: Math.floor(Math.random() * 200), // 0-200 minutes
+                        timestamp: timestamp
+                      };
+                      // Optionally: send to endpoint here (async/await fetch)
+                      // await fetch('/api/sensor', { method: 'POST', body: JSON.stringify(sensorPayload), headers: { 'Content-Type': 'application/json' } });
+                      // Add to local state for demo
+                      const newSensor: SensorData = {
+                        id: Date.now(),
+                        machine_id: machineId,
+                        timestamp,
+                        data: { ...sensorPayload },
+                      };
+                      setMachines(prev => prev.map(m =>
+                        m.id === machineId
+                          ? { ...m, sensors: [...(m.sensors || []), newSensor] }
+                          : m
+                      ));
+                      setShowAddSensorModal(null);
+                    }}
+                  >
+                    <div className="mb-3 text-gray-600 text-sm">
+                      Data sensor akan di-generate otomatis dan dikirim ke endpoint.
+                    </div>
+                    <div className="flex justify-end gap-3 mt-4">
+                      <button
+                        className="px-4 py-2 rounded-xl border"
+                        type="button"
+                        onClick={() => { setShowAddSensorModal(null); }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700"
+                      >
+                        Add Sensor Data
+                      </button>
+                    </div>
+                  </form>
+                </ModalWrapper>
+              )}
+
+              {/* MANUAL DIAGNOSTIC MODAL */}
+              {showManualDiagModal && (
+                <ModalWrapper onClose={() => { setShowManualDiagModal(null); setManualDiagForm({ risk_score: 0, most_likely_failure: '', recommended_action: '' }); }}>
+                  <h2 className="text-xl font-bold mb-4">Manual Diagnostic - {showManualDiagModal.name}</h2>
+                  <form
+                    onSubmit={e => {
+                      e.preventDefault();
+                      if (!showManualDiagModal) return;
+                      const newDiag: Diagnostic = {
+                        id: Date.now(),
+                        machine_id: showManualDiagModal.id,
+                        timestamp: new Date().toISOString(),
+                        risk_score: Number(manualDiagForm.risk_score),
+                        failure_prediction: { predicted: Number(manualDiagForm.risk_score) > 0.5 },
+                        failure_type_probabilities: { [manualDiagForm.most_likely_failure as string]: 1 },
+                        most_likely_failure: manualDiagForm.most_likely_failure as string,
+                        recommended_action: manualDiagForm.recommended_action as string,
+                        feature_contributions: {},
+                      };
+                      setMachines(prev => prev.map(m =>
+                        m.id === showManualDiagModal.id
+                          ? { ...m, diagnostics: [newDiag, ...(m.diagnostics || [])] }
+                          : m
+                      ));
+                      setShowManualDiagModal(null);
+                      setManualDiagForm({ risk_score: 0, most_likely_failure: '', recommended_action: '' });
+                    }}
+                  >
+                    <input
+                      type="number"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      placeholder="Risk Score (0-1)"
+                      className="w-full p-3 border rounded-xl mb-3"
+                      value={manualDiagForm.risk_score}
+                      onChange={e => setManualDiagForm(f => ({ ...f, risk_score: e.target.value }))}
+                      required
+                    />
+                    <input
+                      type="text"
+                      placeholder="Most Likely Failure"
+                      className="w-full p-3 border rounded-xl mb-3"
+                      value={manualDiagForm.most_likely_failure}
+                      onChange={e => setManualDiagForm(f => ({ ...f, most_likely_failure: e.target.value }))}
+                      required
+                    />
+                    <input
+                      type="text"
+                      placeholder="Recommended Action"
+                      className="w-full p-3 border rounded-xl mb-3"
+                      value={manualDiagForm.recommended_action}
+                      onChange={e => setManualDiagForm(f => ({ ...f, recommended_action: e.target.value }))}
+                      required
+                    />
+                    <div className="flex justify-end gap-3 mt-4">
+                      <button
+                        className="px-4 py-2 rounded-xl border"
+                        type="button"
+                        onClick={() => { setShowManualDiagModal(null); setManualDiagForm({ risk_score: 0, most_likely_failure: '', recommended_action: '' }); }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700"
+                      >
+                        Add Diagnostic
+                      </button>
+                    </div>
+                  </form>
+                </ModalWrapper>
+              )}
         </div>
       </div>
 
@@ -265,9 +468,12 @@ type MachineCardProps = {
   onDetail: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onViewSensors: () => void;
+  onAddSensor: () => void;
+  onManualDiagnostic: () => void;
 };
 
-const MachineCard: React.FC<MachineCardProps> = ({ machine, onDetail, onEdit, onDelete }) => {
+const MachineCard: React.FC<MachineCardProps> = ({ machine, onDetail, onEdit, onDelete, onViewSensors, onAddSensor, onManualDiagnostic }) => {
   const latestDiagnostic = machine.diagnostics?.[0];
   const hasDiagnostics = !!latestDiagnostic;
   
@@ -299,6 +505,15 @@ const MachineCard: React.FC<MachineCardProps> = ({ machine, onDetail, onEdit, on
           </button>
           <button onClick={onDelete} aria-label={`Delete ${machine.name}`}>
             <Trash2 className="w-5 h-5 text-red-600 hover:text-red-800" />
+          </button>
+          <button onClick={onViewSensors} aria-label={`View Sensors ${machine.name}`} title="View Sensor Data">
+            <span className="w-5 h-5 text-green-600 hover:text-green-800">🔍</span>
+          </button>
+          <button onClick={onAddSensor} aria-label={`Add Sensor Data ${machine.name}`} title="Add Sensor Data">
+            <span className="w-5 h-5 text-blue-600 hover:text-blue-800">➕</span>
+          </button>
+          <button onClick={onManualDiagnostic} aria-label={`Manual Diagnostic ${machine.name}`} title="Manual Diagnostic">
+            <span className="w-5 h-5 text-yellow-600 hover:text-yellow-800">🩺</span>
           </button>
         </div>
       </div>
