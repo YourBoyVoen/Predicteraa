@@ -11,19 +11,19 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
-import type { Conversation } from "../../services";
+import { memo } from "react";
+import { useConversations } from "../../contexts/ConversationsContext";
 
 export default function Sidebar({
   open,
   onClose,
-  conversations,
 }: {
   open: boolean;
   onClose: () => void;
-  conversations?: Conversation[];
 }) {
   const location = useLocation(); // untuk deteksi halaman aktif
   const [params] = useSearchParams();
+  const { conversations, deleteConversation } = useConversations();
 
   return (
     <>
@@ -53,9 +53,11 @@ export default function Sidebar({
         </button>
 
         {/* Logo */}
-        <h1 className="text-2xl font-bold text-blue-600 mb-8 md:mb-10">
-          Predictera
-        </h1>
+        <Link to="/dashboard" className="block">
+          <h1 className="text-2xl font-bold text-blue-600 mb-8 md:mb-10 hover:text-blue-700 transition-colors cursor-pointer">
+            Predictera
+          </h1>
+        </Link>
 
         {/* Main menu */}
         <div className="space-y-2">
@@ -64,7 +66,7 @@ export default function Sidebar({
             icon={<LayoutDashboard size={18} />}
             label="Dashboard"
             to="/dashboard"
-            active={location.pathname === "/dashboard"}
+            active={location.pathname === "/dashboard" || location.pathname === "/"}
           />
 
           <SidebarItem
@@ -80,19 +82,18 @@ export default function Sidebar({
             to="/agent"
             active={location.pathname === "/agent" && !params.get("conversation")}
           />
-
-          {conversations && (
-            <div className="ml-6 space-y-1">
-              {conversations.map((conv) => (
-                <ConversationItem
-                  key={conv.id}
-                  label={conv.title || `Conversation ${conv.id}`}
-                  to={`/agent?conversation=${conv.id}`}
-                  active={location.pathname === "/agent" && params.get("conversation") === String(conv.id)}
-                />
-              ))}
-            </div>
-          )}
+          
+          <div className="ml-6 space-y-1">
+            {conversations?.map((conv) => (
+              <ConversationItem
+                key={conv.id}
+                label={conv.title || `Conversation ${conv.id}`}
+                to={`/agent?conversation=${conv.id}`}
+                active={location.pathname === "/agent" && params.get("conversation") === String(conv.id)}
+                onDelete={() => deleteConversation(conv.id)}
+              />
+            ))}
+          </div>
 
           <SidebarItem
             icon={<Cpu size={18} />}
@@ -173,24 +174,44 @@ function SidebarItem({
   );
 }
 
-function ConversationItem({
+const ConversationItem = memo(function ConversationItem({
   label,
   to,
   active = false,
+  onDelete,
 }: {
   label: string;
   to: string;
   active?: boolean;
+  onDelete?: () => void;
 }) {
+  const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onDelete) {
+      onDelete();
+    }
+  };
+
   return (
     <Link to={to}>
       <div
-        className={`flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition text-sm
-        ${active ? "bg-blue-600 text-white" : "text-gray-700 hover:bg-blue-600 hover:text-white"}`}
+        className={`flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition text-sm group
+        ${active ? "bg-blue-600 text-white" : "text-gray-700 hover:bg-blue-300"}`}
       >
-        <MessageSquare size={14} />
-        <span className="font-medium truncate block">{label}</span>
+        <MessageSquare size={14} className="flex-shrink-0" />
+        <span className="font-medium truncate block flex-1">{label}</span>
+        {onDelete && (
+          <button
+            onClick={handleDelete}
+            className={`opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:text-white
+              ${active ? "text-white" : "text-gray-500"}`}
+            aria-label="Delete conversation"
+          >
+            <X size={14} />
+          </button>
+        )}
       </div>
     </Link>
   );
-}
+});

@@ -1,10 +1,13 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Calendar, { type CalendarProps } from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import "../styles/calendar-custom.css";
 import Sidebar from "../components/layout/Sidebar";
+import { ChevronRight, Menu } from "lucide-react";
 
 export default function CalendarPage() {
+  const navigate = useNavigate();
   const [value, setValue] = useState<Date | [Date, Date] | null>(new Date());
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -53,15 +56,28 @@ export default function CalendarPage() {
 
       <div className="flex-1 min-h-screen bg-gray-50 p-4 md:p-10">
 
-        {/* Top Bar */}
-        <div className="flex items-center justify-between mb-6">
-          <button
-            className="md:hidden p-2 bg-white shadow rounded-lg"
-            onClick={() => setSidebarOpen(true)}
-          >
-            ☰
-          </button>
-          <h1 className="text-2xl md:text-3xl font-bold">Calendar</h1>
+        {/* Header with Breadcrumb */}
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <button
+              className="md:hidden p-2 rounded-lg border"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu size={24} />
+            </button>
+            <div>
+              {/* Breadcrumb */}
+              <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-2">
+                <button onClick={() => navigate("/")} className="hover:text-blue-600">
+                  Dashboard
+                </button>
+                <ChevronRight size={16} />
+                <span className="text-gray-900 font-medium">Calendar</span>
+              </nav>
+            </div>
+          </div>
+
+          <h1 className="text-xl md:text-3xl font-bold">Calendar</h1>
         </div>
 
         {/* Calendar Container */}

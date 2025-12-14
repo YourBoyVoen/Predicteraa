@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { Send, Loader2, MessageSquare } from "lucide-react";
+import { Send, Loader2, Menu, ChevronRight } from "lucide-react";
 import Sidebar from "../components/layout/Sidebar";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { agentApi, ApiError, type Conversation } from "../services";
+import { useConversations } from "../contexts/ConversationsContext";
+import { useSnackbar } from "../contexts/SnackbarContext";
 import ReactMarkdown from "react-markdown";
 
 interface Message {
@@ -10,17 +12,92 @@ interface Message {
   role: 'user' | 'assistant';
   message: string;
   timestamp: string;
+  animate?: boolean; // Add animate flag
+  source?: string; // AI source (e.g., 'Google Gemini AI')
 }
+
+// Typewriter animation component
+const TypewriterText: React.FC<{ text: string; speed?: number; onComplete?: () => void }> = ({ text, speed = 6, onComplete }) => {
+  const [displayText, setDisplayText] = useState('');
+  const [isComplete, setIsComplete] = useState(false);
+
+  useEffect(() => {
+    if (!text) {
+      setDisplayText('');
+      setIsComplete(true);
+      return;
+    }
+
+    setDisplayText('');
+    setIsComplete(false);
+    
+    let index = 0;
+    let isCancelled = false;
+
+    const typeNextChar = () => {
+      if (isCancelled) return;
+      
+      if (index < text.length) {
+        setDisplayText(text.substring(0, index + 1));
+        index++;
+        setTimeout(typeNextChar, speed);
+      } else {
+        if (!isCancelled) {
+          setIsComplete(true);
+          onComplete?.();
+        }
+      }
+    };
+
+    // Start typing immediately
+    typeNextChar();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [text, speed]);
+
+  // Always render with markdown to show formatting during animation
+  return (
+    <div className="markdown-content">
+      <ReactMarkdown
+        components={{
+          // Custom styling for markdown elements
+          p: ({node, ...props}) => <p className="mb-3 last:mb-0 leading-relaxed" {...props} />,
+          ul: ({node, ...props}) => <ul className="list-disc list-outside mb-3 last:mb-0 space-y-1 pl-6" {...props} />,
+          ol: ({node, ...props}) => <ol className="list-decimal list-outside mb-3 last:mb-0 space-y-1 pl-6" {...props} />,
+          li: ({node, ...props}) => <li className="ml-0" {...props} />,
+          strong: ({node, ...props}) => <strong className="font-semibold text-gray-900" {...props} />,
+          em: ({node, ...props}) => <em className="italic" {...props} />,
+          h1: ({node, ...props}) => <h1 className="text-xl font-bold mb-2 mt-4 first:mt-0" {...props} />,
+          h2: ({node, ...props}) => <h2 className="text-lg font-bold mb-2 mt-3 first:mt-0" {...props} />,
+          h3: ({node, ...props}) => <h3 className="text-base font-bold mb-2 mt-3 first:mt-0" {...props} />,
+          code: ({node, inline, ...props}: any) => 
+            inline ? (
+              <code className="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono" {...props} />
+            ) : (
+              <code className="block bg-gray-100 p-3 rounded-lg text-sm font-mono overflow-x-auto" {...props} />
+            ),
+        }}
+      >
+        {displayText}
+      </ReactMarkdown>
+    </div>
+  );
+};
 
 const AgentPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const messageIdCounter = useRef(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const pendingNavigationRef = useRef<{ convId: number } | null>(null);
+
+  const { conversations, refreshConversations, deleteConversation: deleteConv } = useConversations();
+  const { showSnackbar } = useSnackbar();
 
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -32,11 +109,6 @@ const AgentPage = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Load conversations on mount
-  useEffect(() => {
-    loadConversations();
-  }, []);
-
   // Load conversation messages when conversation ID changes
   useEffect(() => {
     if (conversationId) {
@@ -46,16 +118,6 @@ const AgentPage = () => {
     }
   }, [conversationId]);
 
-  const loadConversations = async () => {
-    try {
-      const data = await agentApi.getConversations();
-      // Limit to 5 most recent conversations
-      setConversations(data.data.conversations.slice(0, 5));
-    } catch (err) {
-      console.error('Failed to load conversations:', err);
-    }
-  };
-
   const loadConversationMessages = async (convId: number) => {
     try {
       const data = await agentApi.getConversationMessages(convId);
@@ -63,7 +125,7 @@ const AgentPage = () => {
     } catch (err) {
       console.error('Failed to load conversation messages:', err);
       if (err instanceof ApiError && err.status === 401) {
-        setError('Unauthorized access to this conversation');
+        showSnackbar('Unauthorized access to this conversation', 'error');
       }
     }
   };
@@ -77,13 +139,43 @@ const AgentPage = () => {
     setMessages([]);
   };
 
+  const handleDeleteConversation = async (convId: number) => {
+    if (!window.confirm('Are you sure you want to delete this conversation?')) {
+      return;
+    }
+
+    try {
+      await deleteConv(convId);
+      
+      showSnackbar('Conversation deleted successfully', 'success');
+      
+      // If we're currently viewing the deleted conversation, navigate away
+      if (conversationId === String(convId)) {
+        navigate('/agent');
+        setMessages([]);
+      }
+      
+      // Conversations list is updated automatically by context
+    } catch (err) {
+      console.error('Failed to delete conversation:', err);
+      const errorMsg = err instanceof ApiError ? err.message : 'Failed to delete conversation';
+      showSnackbar(errorMsg, 'error');
+    }
+  };
+
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
     const userMessage = input.trim();
-    setInput("");
-    setError(null);
+    const wasEmpty = messages.length === 0;
     setIsLoading(true);
+
+    // If starting from empty state, trigger layout transition first
+    if (wasEmpty) {
+      setIsTransitioning(true);
+      // Wait for layout to render
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
 
     const tempUserMessage: Message = {
       id: ++messageIdCounter.current,
@@ -93,25 +185,42 @@ const AgentPage = () => {
     };
     setMessages(prev => [...prev, tempUserMessage]);
 
+    // Scroll to ensure we're in the message view
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
+
+    const wasNewConversation = !conversationId;
+
     try {
       const data = await agentApi.sendMessage({
         message: userMessage,
         conversation_id: conversationId ? parseInt(conversationId) : undefined,
       });
 
-      // If new conversation was created, navigate to it
-      if (!conversationId && data.data.conversation_id) {
-        navigate(`/agent?conversation=${data.data.conversation_id}`);
-        await loadConversations(); // Refresh conversations list
-      }
+      // Clear input only on successful send
+      setInput("");
+
+      // Always add minimum delay to prevent flickering
+      await new Promise(resolve => setTimeout(resolve, 800));
 
       const assistantMessage: Message = {
         id: ++messageIdCounter.current,
         role: 'assistant',
         message: data.data.response,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        animate: true, // Mark for animation
+        source: data.data.sources?.[0] || 'AI' // Capture AI source
       };
       setMessages(prev => [...prev, assistantMessage]);
+      setIsTransitioning(false); // Clear transition state
+      setIsLoading(false); // Clear loading when assistant message appears
+
+      // If new conversation was created, store the navigation request
+      // It will be executed when the typewriter animation completes
+      if (wasNewConversation && data.data.conversation_id) {
+        pendingNavigationRef.current = { convId: data.data.conversation_id };
+      }
 
     } catch (err: unknown) {
       console.error("Chat error:", err);
@@ -122,17 +231,31 @@ const AgentPage = () => {
           errorMessage = "Service not found. Please check your connection.";
         } else if (err.status === 500) {
           errorMessage = "Server error. Please try again later.";
+        } else if (err.status === 429) {
+          errorMessage = "AI service rate limit reached. Please try again later.";
         } else if (err.status) {
           errorMessage = `Request failed (${err.status}): ${err.message}`;
         } else {
           errorMessage = err.message;
         }
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
       }
 
-      setError(errorMessage);
+      // Show error via snackbar
+      showSnackbar(errorMessage, 'error');
       setMessages(prev => prev.slice(0, -1));
-    } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAnimationComplete = () => {
+    // When animation completes, execute any pending navigation
+    if (pendingNavigationRef.current) {
+      const { convId } = pendingNavigationRef.current;
+      pendingNavigationRef.current = null;
+      navigate(`/agent?conversation=${convId}`, { replace: true });
+      refreshConversations();
     }
   };
 
@@ -148,27 +271,44 @@ const AgentPage = () => {
   };
 
   const currentConversation = conversations.find(conv => String(conv.id) === conversationId);
-  const hasMessages = messages.length > 0;
+  const hasMessages = messages.length > 0 || isTransitioning;
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} conversations={conversations} />
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex-1 flex flex-col">
-        {/* Mobile Menu & Conversations Button */}
-        <div className="md:hidden fixed top-6 left-6 z-10 flex gap-2">
-          <button
-            className="p-2 bg-white shadow rounded-lg"
-            onClick={() => setSidebarOpen(true)}
-          >
-            ☰
-          </button>
-        </div>
-
         {/* LAYOUT: Empty State (centered) */}
         {!hasMessages && (
-          <div className="flex-1 flex items-center justify-center px-6">
-            <div className="w-full max-w-4xl">
+          <div className="flex-1 min-h-screen bg-gray-50 flex flex-col p-4 md:p-10">
+            {/* Header with Breadcrumb - Sticky */}
+            <div className="sticky top-0 bg-gray-50 z-10 mb-4 pb-2">
+              <div className="flex items-center gap-3">
+                <button
+                  className="md:hidden p-2 rounded-lg border"
+                  onClick={() => setSidebarOpen(true)}
+                >
+                  <Menu size={24} />
+                </button>
+                <div>
+                  {/* Breadcrumb */}
+                  <nav className="flex items-center space-x-2 text-sm text-gray-600">
+                    <button
+                      onClick={() => navigate("/")}
+                      className="hover:text-blue-600 transition-colors"
+                    >
+                      Dashboard
+                    </button>
+                    <ChevronRight size={16} />
+                    <span className="text-gray-900 font-medium">Agent</span>
+                  </nav>
+                </div>
+              </div>
+            </div>
+
+            {/* Centered Content */}
+            <div className="flex-1 flex items-center justify-center">
+              <div className="w-full max-w-4xl">
               <div className="text-center mb-10">
                 <h1 className="text-3xl font-bold text-gray-800">
                   Ask PredictAgent Anything
@@ -224,30 +364,55 @@ const AgentPage = () => {
                 </div>
               )}
             </div>
+            </div>
           </div>
         )}
 
         {/* LAYOUT: With Messages (top header + scrollable messages + bottom input) */}
         {hasMessages && (
           <>
-            {/* Header */}
-            <div className="pt-24 md:pt-40 pb-6 px-6">
-              <div className="max-w-4xl mx-auto">
-                <div className="text-center mb-6">
-                  <h1 className="text-3xl font-bold text-gray-800">
-                    {currentConversation?.title || `Conversation ${conversationId}`}
-                  </h1>
+            {/* Header with Breadcrumb - Sticky */}
+            <div className="sticky top-0 bg-gray-50 z-10 pt-6 md:pt-10 pb-4 px-4 md:px-10">
+              <div className="flex items-center gap-3">
+                <button
+                  className="md:hidden p-2 rounded-lg border"
+                  onClick={() => setSidebarOpen(true)}
+                >
+                  <Menu size={24} />
+                </button>
+                <div>
+                  {/* Breadcrumb with Conversation Title */}
+                  <nav className="flex items-center space-x-2 text-sm text-gray-600">
+                    <button
+                      onClick={() => navigate("/")}
+                      className="hover:text-blue-600 transition-colors"
+                    >
+                      Dashboard
+                    </button>
+                    <ChevronRight size={16} />
+                    <span className="hover:text-blue-600 transition-colors cursor-pointer" onClick={() => navigate('/agent')}>
+                      Agent
+                    </span>
+                    {conversationId && (
+                      <>
+                        <ChevronRight size={16} />
+                        <span className="text-gray-900 font-medium">
+                          {currentConversation?.title || 'New Conversation'}
+                        </span>
+                      </>
+                    )}
+                  </nav>
                   {machineId && (
-                    <p className="text-blue-600 font-semibold text-sm mt-2">
-                      You are asking about Machine #{machineId}
+                    <p className="text-blue-600 font-semibold text-xs mt-1">
+                      Machine #{machineId}
                     </p>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Messages - Scrollable */}
-            <div className="flex-1 overflow-y-auto px-6 pb-6">
+            {/* Messages */}
+            <div className="px-6 pb-6 pt-32">
               <div className="max-w-4xl mx-auto">
                 <div className="space-y-6 pb-32">
                   {messages.map((msg) => (
@@ -260,36 +425,55 @@ const AgentPage = () => {
                         {msg.role === 'user' ? (
                           <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
                         ) : (
-                          <div className="markdown-content">
-                            <ReactMarkdown
-                              components={{
-                                // Custom styling for markdown elements
-                                p: ({node, ...props}) => <p className="mb-3 last:mb-0 leading-relaxed" {...props} />,
-                                ul: ({node, ...props}) => <ul className="list-disc list-inside mb-3 last:mb-0 space-y-1" {...props} />,
-                                ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-3 last:mb-0 space-y-1" {...props} />,
-                                li: ({node, ...props}) => <li className="ml-2" {...props} />,
-                                strong: ({node, ...props}) => <strong className="font-semibold text-gray-900" {...props} />,
-                                em: ({node, ...props}) => <em className="italic" {...props} />,
-                                h1: ({node, ...props}) => <h1 className="text-xl font-bold mb-2 mt-4 first:mt-0" {...props} />,
-                                h2: ({node, ...props}) => <h2 className="text-lg font-bold mb-2 mt-3 first:mt-0" {...props} />,
-                                h3: ({node, ...props}) => <h3 className="text-base font-bold mb-2 mt-3 first:mt-0" {...props} />,
-                                code: ({node, inline, ...props}: any) => 
-                                  inline ? (
-                                    <code className="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono" {...props} />
-                                  ) : (
-                                    <code className="block bg-gray-100 p-3 rounded-lg text-sm font-mono overflow-x-auto" {...props} />
-                                  ),
-                              }}
-                            >
-                              {msg.message}
-                            </ReactMarkdown>
-                          </div>
+                          msg.animate ? (
+                            <TypewriterText text={msg.message} onComplete={handleAnimationComplete} />
+                          ) : (
+                            <div className="markdown-content">
+                              <ReactMarkdown
+                                components={{
+                                  // Custom styling for markdown elements
+                                  p: ({node, ...props}) => <p className="mb-3 last:mb-0 leading-relaxed" {...props} />,
+                                  ul: ({node, ...props}) => <ul className="list-disc list-outside mb-3 last:mb-0 space-y-1 pl-6" {...props} />,
+                                  ol: ({node, ...props}) => <ol className="list-decimal list-outside mb-3 last:mb-0 space-y-1 pl-6" {...props} />,
+                                  li: ({node, ...props}) => <li className="ml-0" {...props} />,
+                                  strong: ({node, ...props}) => <strong className="font-semibold text-gray-900" {...props} />,
+                                  em: ({node, ...props}) => <em className="italic" {...props} />,
+                                  h1: ({node, ...props}) => <h1 className="text-xl font-bold mb-2 mt-4 first:mt-0" {...props} />,
+                                  h2: ({node, ...props}) => <h2 className="text-lg font-bold mb-2 mt-3 first:mt-0" {...props} />,
+                                  h3: ({node, ...props}) => <h3 className="text-base font-bold mb-2 mt-3 first:mt-0" {...props} />,
+                                  code: ({node, inline, ...props}: any) => 
+                                    inline ? (
+                                      <code className="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono" {...props} />
+                                    ) : (
+                                      <code className="block bg-gray-100 p-3 rounded-lg text-sm font-mono overflow-x-auto" {...props} />
+                                    ),
+                                }}
+                              >
+                                {msg.message}
+                              </ReactMarkdown>
+                            </div>
+                          )
                         )}
-                        <p className={`text-xs mt-2 ${
-                          msg.role === 'user' ? 'text-blue-100' : 'text-gray-500'
-                        }`}>
-                          {new Date(msg.timestamp).toLocaleTimeString()}
-                        </p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <p className={`text-xs ${
+                            msg.role === 'user' ? 'text-blue-100' : 'text-gray-500'
+                          }`}>
+                            {new Date(msg.timestamp).toLocaleTimeString()}
+                          </p>
+                          {msg.role === 'assistant' && msg.source && (
+                            <div className="group relative">
+                              <svg className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 transition-colors cursor-help" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                              </svg>
+                              <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-max max-w-xs">
+                                <div className="bg-gray-900 text-white text-xs rounded-lg py-1.5 px-2.5 shadow-lg">
+                                  {msg.source}
+                                  <div className="absolute top-full left-2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -310,7 +494,7 @@ const AgentPage = () => {
               </div>
             </div>
 
-            {/* Bottom Bar - Fixed */}
+            {/* Bottom Input Bar - Fixed */}
             <div className="fixed bottom-0 left-0 md:left-64 right-0 bg-gray-50 px-6 py-4">
               <div className="max-w-4xl mx-auto">
                 {/* Suggestions above input */}
@@ -319,13 +503,6 @@ const AgentPage = () => {
                   <Suggestion text="Which machines need attention?" onClick={handleSuggestionClick} />
                   <Suggestion text="When was the last time a diagnostic was done?" onClick={handleSuggestionClick} />
                 </div>
-
-                {/* Error Message */}
-                {error && (
-                  <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-red-600 text-sm">{error}</p>
-                  </div>
-                )}
                 
                 {/* Input - No border on container */}
                 <div className="w-full bg-white shadow rounded-2xl flex items-center px-4 py-3">
