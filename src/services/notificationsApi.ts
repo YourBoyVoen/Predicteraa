@@ -44,4 +44,9 @@ export const notificationsApi = {
     const response = await httpClient.get<NotificationsResponse>('/notifications');
     return response.data.notifications;
   },
+
+  // DELETE /notifications/{id} - Delete/dismiss a notification
+  deleteNotification: async (id: string): Promise<{ status: string; message: string }> => {
+    return httpClient.delete<{ status: string; message: string }>(`/notifications/${id}`);
+  },
 };
