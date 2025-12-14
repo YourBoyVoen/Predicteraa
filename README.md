@@ -1,75 +1,97 @@
-# React + TypeScript + Vite
+## Installation
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Follow these steps to get the project running locally.
 
-Currently, two official plugins are available:
+Prerequisites
+- Node.js 18.x or later (LTS recommended). Check with `node -v`.
+- A package manager: npm (comes with Node), or yarn, or pnpm.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
-
-Note: This will impact Vite dev & build performances.
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Clone and checkout the fev2 branch
+```bash
+git clone https://github.com/YourBoyVoen/Predicteraa.git
+cd Predicteraa
+git checkout fev2
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Install dependencies
+- Using npm:
+```bash
+npm install
 ```
+- Using yarn:
+```bash
+yarn
+```
+- Using pnpm:
+```bash
+pnpm install
+```
+
+Run the development server
+```bash
+# npm
+npm run dev
+
+# yarn
+yarn dev
+
+# pnpm
+pnpm dev
+```
+Open http://localhost:5173 (or the URL printed in the terminal).
+
+Build and preview production bundle
+```bash
+# Build
+npm run build
+
+# Preview production build locally
+npm run preview
+```
+
+Linting and formatting
+```bash
+# Lint
+npm run lint
+
+# Fix auto-fixable lint issues
+npm run lint:fix
+
+# Format (if Prettier is configured)
+npm run format
+```
+
+Environment variables
+- If the project requires any environment variables, create a `.env` file at the project root (do not commit secrets).
+- Example:
+```
+VITE_API_URL=https://api.example.com
+```
+Vite exposes variables prefixed with VITE_ to client code (access with import.meta.env.VITE_API_URL).
+
+Common troubleshooting
+- If you see dependency or lockfile issues, try removing node_modules and reinstalling:
+```bash
+rm -rf node_modules package-lock.json yarn.lock pnpm-lock.yaml
+npm install
+```
+- Ensure Node version >= 18. Use nvm to install/switch Node versions:
+```bash
+nvm install 18
+nvm use 18
+```
+- If HMR doesn't update, clear the browser cache or restart the dev server.
+
+Optional: Docker (quick example)
+- Build image:
+```bash
+docker build -t predicteraa:dev .
+```
+- Run container (serving built assets via a simple server):
+```bash
+docker run -p 5173:5173 predicteraa:dev
+```
+
+Notes
+- Replace any example environment values with your own secrets and endpoints.
+- If you want, I can add this Installation section directly to README.md on the fev2 branch and open a commit — tell me if you want me to proceed.
