@@ -20,6 +20,8 @@ const MachineDetailPage: React.FC = () => {
 
   // Modal states
   const [showAddSensorModal, setShowAddSensorModal] = useState(false);
+  const [showDiagnosticsConfirmModal, setShowDiagnosticsConfirmModal] = useState(false);
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   // const [showEditMachineModal, setShowEditMachineModal] = useState(false);
   const [runningDiagnostics, setRunningDiagnostics] = useState(false);
 
@@ -83,7 +85,11 @@ const MachineDetailPage: React.FC = () => {
   };
 
   const handleRunDiagnostics = async () => {
-    if (!id) return;
+    setShowDiagnosticsConfirmModal(true);
+  };
+
+  const confirmRunDiagnostics = async () => {
+    setShowDiagnosticsConfirmModal(false);
 
     try {
       setRunningDiagnostics(true);
@@ -136,15 +142,15 @@ const MachineDetailPage: React.FC = () => {
   };
 
   const handleDeleteMachine = async () => {
-    if (!id) return;
+    setShowDeleteConfirmModal(true);
+  };
 
-    if (!confirm(`Are you sure you want to delete machine "${machine?.name}"? This action cannot be undone.`)) {
-      return;
-    }
+  const confirmDeleteMachine = async () => {
+    setShowDeleteConfirmModal(false);
 
     try {
       await machinesApi.delete(id);
-      navigate('/machines'); // Redirect to machines list
+      navigate('/machine'); // Redirect to machines list
     } catch (err) {
       console.error("Error deleting machine:", err);
       setError("Failed to delete machine");
@@ -281,7 +287,7 @@ const MachineDetailPage: React.FC = () => {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-2 px-2">Time</th>
+                    <th className="text-left py-2 px-2">Timestamp</th>
                       <th className="text-left py-2 px-2">Air Temp (K)</th>
                       <th className="text-left py-2 px-2">Process Temp (K)</th>
                       <th className="text-left py-2 px-2">Speed (RPM)</th>
@@ -321,7 +327,7 @@ const MachineDetailPage: React.FC = () => {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-2 px-2">Time</th>
+                    <th className="text-left py-2 px-2">Timestamp</th>
                       <th className="text-left py-2 px-2">Risk Score</th>
                       <th className="text-left py-2 px-2">Will Fail</th>
                       <th className="text-left py-2 px-2">Most Likely Failure</th>
@@ -428,6 +434,76 @@ const MachineDetailPage: React.FC = () => {
                 className="px-4 py-2 rounded-xl bg-green-600 text-white hover:bg-green-700"
               >
                 Add Data
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DIAGNOSTICS CONFIRMATION MODAL */}
+      {showDiagnosticsConfirmModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center px-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full relative">
+            <button
+              onClick={() => setShowDiagnosticsConfirmModal(false)}
+              className="absolute right-4 top-4 text-gray-500 hover:text-gray-700"
+            >
+              <X />
+            </button>
+            <h2 className="text-xl font-bold mb-4">Confirm Diagnostics</h2>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to run diagnostics for this machine? This will analyze the latest sensor data and may take a moment.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                className="px-4 py-2 rounded-xl border"
+                onClick={() => setShowDiagnosticsConfirmModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmRunDiagnostics}
+                disabled={runningDiagnostics}
+                className="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {runningDiagnostics ? "Running..." : "Run Diagnostics"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {showDeleteConfirmModal && machine && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center px-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full relative">
+            <button
+              onClick={() => setShowDeleteConfirmModal(false)}
+              className="absolute right-4 top-4 text-gray-500 hover:text-gray-700"
+            >
+              <X />
+            </button>
+            <h2 className="text-xl font-bold mb-4">Delete Machine</h2>
+            <p className="text-gray-600 mb-4">
+              Are you sure you want to delete <strong>"{machine.name}"</strong>?
+            </p>
+            <p className="text-red-600 text-sm mb-6">
+              This action cannot be undone. All associated sensor data and diagnostics will be permanently removed.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                className="px-4 py-2 rounded-xl border"
+                onClick={() => setShowDeleteConfirmModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteMachine}
+                className="px-4 py-2 rounded-xl bg-red-600 text-white hover:bg-red-700"
+              >
+                Delete Machine
               </button>
             </div>
           </div>

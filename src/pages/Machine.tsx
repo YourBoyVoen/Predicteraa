@@ -44,6 +44,7 @@ const MachinePage: React.FC = () => {
 
   // Modal States
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showBulkConfirmModal, setShowBulkConfirmModal] = useState(false);
 
   // Loading states
   const [bulkLoading, setBulkLoading] = useState(false);
@@ -114,6 +115,11 @@ const MachinePage: React.FC = () => {
 
   /* Bulk Run Diagnostics */
   const runBulkDiagnostics = async () => {
+    setShowBulkConfirmModal(true);
+  };
+
+  const confirmBulkDiagnostics = async () => {
+    setShowBulkConfirmModal(false);
     setBulkLoading(true);
     try {
       const response = await diagnosticsApi.runBulkDiagnostics();
@@ -243,6 +249,31 @@ const MachinePage: React.FC = () => {
               className="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700"
             >
               Add Machine
+            </button>
+          </div>
+        </ModalWrapper>
+      )}
+
+      {/* BULK DIAGNOSTICS CONFIRMATION MODAL */}
+      {showBulkConfirmModal && (
+        <ModalWrapper onClose={() => setShowBulkConfirmModal(false)}>
+          <h2 className="text-xl font-bold mb-4">Confirm Bulk Diagnostics</h2>
+          <p className="text-gray-600 mb-6">
+            Are you sure you want to run diagnostics for all machines? This may take some time and will analyze all available sensor data.
+          </p>
+
+          <div className="flex justify-end gap-3">
+            <button
+              className="px-4 py-2 rounded-xl border"
+              onClick={() => setShowBulkConfirmModal(false)}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmBulkDiagnostics}
+              className="px-4 py-2 rounded-xl bg-green-600 text-white hover:bg-green-700"
+            >
+              Run Diagnostics
             </button>
           </div>
         </ModalWrapper>
