@@ -9,6 +9,7 @@ import MachinePage from "../pages/Machine";
 import MachineDetailPage from "../pages/MachineDetail";
 import HistoryPage from "../pages/History";
 import NotificationPage from "../pages/Notification";
+import UserList from "../pages/UserList";
 import ProtectedRoute from "../components/ProtectedRoute";
 
 const AppRouter = () => {
@@ -23,6 +24,7 @@ const AppRouter = () => {
       {/* Protected Routes */}
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/agent" element={<ProtectedRoute><AgentPage /></ProtectedRoute>} />
+      <Route path="/users" element={<ProtectedRoute><UserList /></ProtectedRoute>} />
       <Route path="/machine" element={<ProtectedRoute><MachinePage /></ProtectedRoute>} />
       <Route path="/machine/:id" element={<ProtectedRoute><MachineDetailPage /></ProtectedRoute>} />
       <Route path="/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
