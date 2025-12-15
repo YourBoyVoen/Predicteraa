@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Send, Loader2, Menu, ChevronRight } from "lucide-react";
 import Sidebar from "../components/layout/Sidebar";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { agentApi, ApiError, type Conversation } from "../services";
+import { agentApi, ApiError } from "../services";
 import { useConversations } from "../contexts/ConversationsContext";
 import { useSnackbar } from "../contexts/SnackbarContext";
 import ReactMarkdown from "react-markdown";
@@ -19,7 +19,7 @@ interface Message {
 // Typewriter animation component
 const TypewriterText: React.FC<{ text: string; speed?: number; onComplete?: () => void }> = ({ text, speed = 6, onComplete }) => {
   const [displayText, setDisplayText] = useState('');
-  const [isComplete, setIsComplete] = useState(false);
+  const [_isComplete, setIsComplete] = useState(false);
 
   useEffect(() => {
     if (!text) {
@@ -96,7 +96,7 @@ const AgentPage = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pendingNavigationRef = useRef<{ convId: number } | null>(null);
 
-  const { conversations, refreshConversations, deleteConversation: deleteConv } = useConversations();
+  const { conversations, refreshConversations } = useConversations();
   const { showSnackbar } = useSnackbar();
 
   const [params] = useSearchParams();
@@ -127,39 +127,6 @@ const AgentPage = () => {
       if (err instanceof ApiError && err.status === 401) {
         showSnackbar('Unauthorized access to this conversation', 'error');
       }
-    }
-  };
-
-  const selectConversation = (convId: number) => {
-    navigate(`/agent?conversation=${convId}`);
-  };
-
-  const startNewConversation = () => {
-    navigate('/agent');
-    setMessages([]);
-  };
-
-  const handleDeleteConversation = async (convId: number) => {
-    if (!window.confirm('Are you sure you want to delete this conversation?')) {
-      return;
-    }
-
-    try {
-      await deleteConv(convId);
-      
-      showSnackbar('Conversation deleted successfully', 'success');
-      
-      // If we're currently viewing the deleted conversation, navigate away
-      if (conversationId === String(convId)) {
-        navigate('/agent');
-        setMessages([]);
-      }
-      
-      // Conversations list is updated automatically by context
-    } catch (err) {
-      console.error('Failed to delete conversation:', err);
-      const errorMsg = err instanceof ApiError ? err.message : 'Failed to delete conversation';
-      showSnackbar(errorMsg, 'error');
     }
   };
 

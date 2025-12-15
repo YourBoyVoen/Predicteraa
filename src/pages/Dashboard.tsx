@@ -1,7 +1,6 @@
 import Sidebar from "../components/layout/Sidebar";
 import { Menu, Wrench, Cpu } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   LineChart,
   Line,
@@ -15,7 +14,6 @@ import {
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState("January");
-  const navigate = useNavigate();
 
   // Dummy data for 3 machines
   const dataMachineA = [

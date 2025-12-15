@@ -54,26 +54,26 @@ export interface DeleteResponse {
 export const machinesApi = {
   // GET /machines - Get all machines
   getAll: async (): Promise<MachinesResponse> => {
-    return httpClient.get<MachinesResponse>('/machines');
+    return httpClient.get<MachinesResponse>('/api/machines');
   },
 
   // GET /machines/{id} - Get machine by ID
   getById: async (id: number | string): Promise<MachineResponse> => {
-    return httpClient.get<MachineResponse>(`/machines/${id}`);
+    return httpClient.get<MachineResponse>(`/api/machines/${id}`);
   },
 
   // POST /machines - Create a new machine
   create: async (payload: CreateMachinePayload): Promise<CreateMachineResponse> => {
-    return httpClient.post<CreateMachineResponse>('/machines', payload);
+    return httpClient.post<CreateMachineResponse>('/api/machines', payload);
   },
 
   // PUT /machines/{id} - Update machine by ID
   update: async (id: number | string, payload: UpdateMachinePayload): Promise<UpdateMachineResponse> => {
-    return httpClient.put<UpdateMachineResponse>(`/machines/${id}`, payload);
+    return httpClient.put<UpdateMachineResponse>(`/api/machines/${id}`, payload);
   },
 
   // DELETE /machines/{id} - Delete machine by ID
   delete: async (id: number | string): Promise<DeleteResponse> => {
-    return httpClient.delete<DeleteResponse>(`/machines/${id}`);
+    return httpClient.delete<DeleteResponse>(`/api/machines/${id}`);
   },
 };

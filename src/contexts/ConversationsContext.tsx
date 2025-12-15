@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import type { ReactNode } from 'react';
 import { agentApi, type Conversation } from '../services';
 
 interface ConversationsContextType {

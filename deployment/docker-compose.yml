@@ -1,0 +1,73 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: predictive-maintenance-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-predictive_maintenance}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Inference Service
+  fastapi:
+    image: redcom1988/capstone-fastapi:latest
+    container_name: predictive-maintenance-fastapi
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+
+  # Hapi.js Backend API
+  backend:
+    image: redcom1988/capstone-backend:latest
+    container_name: predictive-maintenance-backend
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      HOST: ${HOST:-0.0.0.0}
+      PORT: ${PORT:-9000}
+      PGHOST: postgres
+      PGPORT: 5432
+      PGUSER: ${POSTGRES_USER:-postgres}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      PGDATABASE: ${POSTGRES_DB:-predictive_maintenance}
+      ACCESS_TOKEN_KEY: ${ACCESS_TOKEN_KEY}
+      REFRESH_TOKEN_KEY: ${REFRESH_TOKEN_KEY}
+      ACCESS_TOKEN_AGE: ${ACCESS_TOKEN_AGE:-3600}
+      FASTAPIPROTOCOL: ${FASTAPIPROTOCOL:-http}
+      FASTAPIHOST: ${FASTAPIHOST:-fastapi}
+      FASTAPIPORT: ${FASTAPIPORT:-8000}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      fastapi:
+        condition: service_started
+
+  # React Frontend
+  frontend:
+    image: redcom1988/capstone-frontend:latest
+    container_name: predictive-maintenance-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_started
+
+volumes:
+  postgres_data:
+    driver: local
