@@ -4,8 +4,8 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Accept build arguments
-ARG VITE_API_BASE_URL=localhost
-ARG VITE_API_PORT=9000
+ARG VITE_API_BASE_URL=
+ARG VITE_API_PORT=
 
 # Set as environment variables for build
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
@@ -29,7 +29,7 @@ FROM nginx:alpine
 # Copy built files to nginx
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy custom nginx config
+# Copy custom nginx config template
 COPY --from=builder /app/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose port

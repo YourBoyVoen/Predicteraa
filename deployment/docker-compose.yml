@@ -12,8 +12,6 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    networks:
-      - app-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -27,14 +25,6 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
 
   # Hapi.js Backend API
   backend:
@@ -55,21 +45,17 @@ services:
       ACCESS_TOKEN_KEY: ${ACCESS_TOKEN_KEY}
       REFRESH_TOKEN_KEY: ${REFRESH_TOKEN_KEY}
       ACCESS_TOKEN_AGE: ${ACCESS_TOKEN_AGE:-3600}
-      FASTAPI_URL: http://fastapi:8000
+      FASTAPIPROTOCOL: ${FASTAPIPROTOCOL:-http}
+      FASTAPIHOST: ${FASTAPIHOST:-fastapi}
+      FASTAPIPORT: ${FASTAPIPORT:-8000}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      CORS_ORIGINS: ${CORS_ORIGINS}
     depends_on:
       postgres:
         condition: service_healthy
       fastapi:
-        condition: service_healthy
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+        condition: service_started
 
   # React Frontend
   frontend:
@@ -79,18 +65,8 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - backend
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-networks:
-  app-network:
-    driver: bridge
+      backend:
+        condition: service_started
 
 volumes:
   postgres_data:
