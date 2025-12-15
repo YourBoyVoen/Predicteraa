@@ -1,6 +1,6 @@
 import Sidebar from "../components/layout/Sidebar";
 import { Menu, Wrench, Cpu } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   LineChart,
   Line,
@@ -10,38 +10,46 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { machinesApi } from "../services";
+
+type MachineHealthItem = {
+  id: number;
+  name: string;
+  healthHistory: Array<{
+    health: number;
+    date: string;
+  }>;
+};
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState("January");
+  const [totalMachines, setTotalMachines] = useState("0 Machine");
+  // const [totalMaintenances, setTotalMaintenances] = useState("0 Job");
+  const [machinesData, setMachinesData] = useState<MachineHealthItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Dummy data for 3 machines
-  const dataMachineA = [
-    { day: "1", value: 88 },
-    { day: "5", value: 92 },
-    { day: "10", value: 90 },
-    { day: "15", value: 94 },
-    { day: "20", value: 97 },
-    { day: "25", value: 95 },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        const count = await machinesApi.count();
+        setTotalMachines(`${count} Machine${count !== 1 ? 's' : ''}`);
 
-  const dataMachineB = [
-    { day: "1", value: 70 },
-    { day: "5", value: 75 },
-    { day: "10", value: 73 },
-    { day: "15", value: 78 },
-    { day: "20", value: 80 },
-    { day: "25", value: 77 },
-  ];
+        const healthResponse = await machinesApi.health();
+        setMachinesData(healthResponse.data.machinesHealth);
+      } catch (error) {
+        console.error('Failed to fetch machine data:', error);
+        setTotalMachines("0 Machine");
+        setMachinesData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const dataMachineC = [
-    { day: "1", value: 60 },
-    { day: "5", value: 65 },
-    { day: "10", value: 63 },
-    { day: "15", value: 68 },
-    { day: "20", value: 70 },
-    { day: "25", value: 69 },
-  ];
+    fetchData();
+  }, []);
 
   return (
     <div className="flex">
@@ -77,21 +85,21 @@ export default function Dashboard() {
 
           <StatCard
             title="Total Machines"
-            value="3 Units"
+            value={totalMachines}
             icon={<Cpu size={22} className="text-purple-700" />}
             iconBg="bg-purple-100"
-            growth="+5% This Month"
-            growthColor="text-green-600"
+            // growth="+5% This Month"
+            // growthColor="text-green-600"
           />
 
-          <StatCard
+          {/* <StatCard
             title="Total Maintenance"
-            value="12 Jobs"
+            value={totalMaintenances}
             icon={<Wrench size={22} className="text-yellow-700" />}
             iconBg="bg-yellow-100"
-            growth="+2% From Last Month"
-            growthColor="text-green-600"
-          />
+            // growth="+2% From Last Month"
+            // growthColor="text-green-600"
+          /> */}
         </div>
 
         {/* Performance Overview */}
@@ -113,11 +121,23 @@ export default function Dashboard() {
 
           {/* 3 Machines Graphs */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-
-            <MachineChart title="Machine A Performance" data={dataMachineA} />
-            <MachineChart title="Machine B Performance" data={dataMachineB} />
-            <MachineChart title="Machine C Performance" data={dataMachineC} />
-
+            {loading ? (
+              <div className="col-span-full text-center py-12 text-gray-500">
+                Loading machine data...
+              </div>
+            ) : machinesData.length > 0 ? (
+              machinesData.map((machine) => (
+                <MachineChart
+                  key={machine.id}
+                  title={`${machine.name} Performance`}
+                  data={machine.healthHistory}
+                />
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12 text-gray-500">
+                No machine data available
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -160,8 +180,8 @@ function StatCard({
 
 /* Machine Chart */
 type ChartPoint = {
-  day: string;
-  value: number;
+  health: number;
+  date: string;
 };
 
 function MachineChart({
@@ -179,10 +199,10 @@ function MachineChart({
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="day" />
+            <XAxis dataKey="date" />
             <YAxis />
             <Tooltip />
-            <Line type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={3} />
+            <Line type="monotone" dataKey="health" stroke="#2563eb" strokeWidth={3} />
           </LineChart>
         </ResponsiveContainer>
       </div>

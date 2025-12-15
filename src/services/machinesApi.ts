@@ -50,6 +50,22 @@ export interface DeleteResponse {
   message: string;
 }
 
+export interface CountResponse {
+  status: string;
+  data: {
+    totalMachines: number;
+  };
+}
+
+export interface HealthResponse {
+  id: number;
+  name: string;
+  healthHistory: Array<{
+    health: number;
+    date: string;
+  }>;
+}
+
 // API methods
 export const machinesApi = {
   // GET /machines - Get all machines
@@ -75,5 +91,14 @@ export const machinesApi = {
   // DELETE /machines/{id} - Delete machine by ID
   delete: async (id: number | string): Promise<DeleteResponse> => {
     return httpClient.delete<DeleteResponse>(`/api/machines/${id}`);
+  },
+
+  count: async (): Promise<number> => {
+    const response = await httpClient.get<CountResponse>('/machines/count');
+    return response.data.totalMachines;
+  },
+
+  health: async(): Promise<HealthResponse> => {
+    return httpClient.get<HealthResponse>('/machines/health');
   },
 };
