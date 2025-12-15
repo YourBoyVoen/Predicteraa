@@ -1,5 +1,5 @@
 import Sidebar from "../components/layout/Sidebar";
-import { Menu, Wrench, Cpu } from "lucide-react";
+import { Menu, Cpu } from "lucide-react";
 import { useState, useEffect } from "react";
 import {
   LineChart,
@@ -25,7 +25,6 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState("January");
   const [totalMachines, setTotalMachines] = useState("0 Machine");
-  // const [totalMaintenances, setTotalMaintenances] = useState("0 Job");
   const [machinesData, setMachinesData] = useState<MachineHealthItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -158,8 +157,8 @@ function StatCard({
   value: string;
   icon: React.ReactNode;
   iconBg: string;
-  growth: string;
-  growthColor: string;
+  growth?: string;
+  growthColor?: string;
 }) {
   return (
   <div className="bg-white rounded-xl p-5 shadow flex items-start gap-4">
@@ -171,7 +170,7 @@ function StatCard({
     <div>
       <p className="text-gray-500 text-sm">{title}</p>
       <h3 className="text-xl md:text-2xl font-bold">{value}</h3>
-      <p className={`text-sm mt-1 ${growthColor}`}>{growth}</p>
+      {growth && <p className={`text-sm mt-1 ${growthColor || 'text-gray-500'}`}>{growth}</p>}
     </div>
 
   </div>

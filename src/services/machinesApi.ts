@@ -58,12 +58,17 @@ export interface CountResponse {
 }
 
 export interface HealthResponse {
-  id: number;
-  name: string;
-  healthHistory: Array<{
-    health: number;
-    date: string;
-  }>;
+  status: string;
+  data: {
+    machinesHealth: Array<{
+      id: number;
+      name: string;
+      healthHistory: Array<{
+        health: number;
+        date: string;
+      }>;
+    }>;
+  };
 }
 
 // API methods
@@ -94,11 +99,11 @@ export const machinesApi = {
   },
 
   count: async (): Promise<number> => {
-    const response = await httpClient.get<CountResponse>('/machines/count');
+    const response = await httpClient.get<CountResponse>('/api/machines/count');
     return response.data.totalMachines;
   },
 
   health: async(): Promise<HealthResponse> => {
-    return httpClient.get<HealthResponse>('/machines/health');
+    return httpClient.get<HealthResponse>('/api/machines/health');
   },
 };

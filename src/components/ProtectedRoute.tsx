@@ -33,7 +33,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
           const response = await authApi.refreshToken({ refreshToken });
           localStorage.setItem('accessToken', response.data.accessToken);
           setIsAuthenticated(true);
-        } catch (error) {
+        } catch (_error) {
           // Refresh failed - clear everything
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');

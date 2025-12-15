@@ -46,7 +46,7 @@ export class HttpClient {
       const data = await response.json();
       localStorage.setItem('accessToken', data.data.accessToken);
       localStorage.setItem('refreshToken', data.data.refreshToken);
-    } catch (error) {
+    } catch (_error) {
       // Refresh failed, clear tokens and redirect to login
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
