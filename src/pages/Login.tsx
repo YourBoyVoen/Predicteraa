@@ -53,7 +53,7 @@ export default function Login() {
           errorMessage = "Invalid username or password";
         } else if (err.status === 400) {
           errorMessage = "Please enter both username and password";
-        } else if (err.status >= 500) {
+        } else if (err.status && err.status >= 500) {
           errorMessage = "Server error. Please try again later.";
         }
       } else if (err instanceof Error) {

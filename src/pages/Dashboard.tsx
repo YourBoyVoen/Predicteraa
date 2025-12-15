@@ -1,7 +1,6 @@
 import Sidebar from "../components/layout/Sidebar";
-import { Menu, Cpu } from "lucide-react";
+import { Menu, Wrench, Cpu } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   LineChart,
   Line,
@@ -29,7 +28,6 @@ export default function Dashboard() {
   // const [totalMaintenances, setTotalMaintenances] = useState("0 Job");
   const [machinesData, setMachinesData] = useState<MachineHealthItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {

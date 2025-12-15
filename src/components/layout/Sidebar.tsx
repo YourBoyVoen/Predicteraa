@@ -4,11 +4,10 @@ import {
   History,
   Cpu,
   Bell,
-  Calendar,
-  Phone,
   X,
   LogOut,
   MessageSquare,
+  Bot,
 } from "lucide-react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { memo } from "react";
@@ -77,7 +76,7 @@ export default function Sidebar({
           />
 
           <SidebarItem
-            icon={<Users size={18} />}
+            icon={<Bot size={18} />}
             label="Agent"
             to="/agent"
             active={location.pathname === "/agent" && !params.get("conversation")}
@@ -118,7 +117,7 @@ export default function Sidebar({
         </div>
 
         {/* Information Section */}
-        <div className="mt-10">
+        {/* <div className="mt-10">
           <p className="text-black font-bold text-xs mb-3">INFORMATION</p>
           <div className="space-y-2">
             <SidebarItem
@@ -135,7 +134,7 @@ export default function Sidebar({
               active={location.pathname === "/contact"}
             />
           </div>
-        </div>
+        </div> */}
 
         {/* Logout */}
         <div className="mt-auto pt-6">
