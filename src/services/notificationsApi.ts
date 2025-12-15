@@ -18,10 +18,9 @@ export interface NotificationsResponse {
 }
 
 export interface PostNotificationPayload {
-  userId: string;
-  machineId?: string;
-  level?: string;
-  message?: string;
+  machineId: string;
+  level: string;
+  message: string;
 }
 
 export interface PostNotificationResponse {
