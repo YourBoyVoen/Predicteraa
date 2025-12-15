@@ -18,49 +18,34 @@ A full-stack predictive maintenance application with AI-powered diagnostics.
 
 ## Quick Start with Docker
 
-1. **Clone the repositories**
+1. **Configure environment variables**
    ```bash
-   mkdir capstone-project && cd capstone-project
-   
-   # Clone backend repository
-   git clone <backend-repo-url> hapi-capstone
-   
-   # Clone frontend repository
-   git clone <frontend-repo-url> Predicteraa
-   ```
-
-2. **Configure environment variables (only in the deployment .env, not the .env.example for debug aka the ones in the repository roots)**
-   ```bash
-   # Copy the root .env.example (only this one is needed for Docker)
+   # Copy the root .env.example to .env
    cp .env.example .env
    
    # Edit .env with your configuration:
    # - Database credentials (POSTGRES_PASSWORD)
    # - JWT secrets (ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY)
    # - API keys (GEMINI_API_KEY, OPENROUTER_API_KEY)
-   # - API URLs (VITE_API_BASE_URL, VITE_API_PORT)
+   # - CORS origins (CORS_ORIGINS)
    ```
-   
-   **Note:** You only need the root `.env` file for Docker deployment. Individual repository `.env` files (`hapi-capstone/.env` and `Predicteraa/.env`) are only needed for local development without Docker.
 
-NOTE: Move the files in deployment folder to the directory that contains both repositories (in their folder form) then continue running commands in that directory
-
-3. **Build and start all services**
+2. **Build and start all services**
    ```bash
    docker compose up -d --build
    ```
 
-4. **Run database migrations and seeds**
+3. **Run database migrations and seeds**
    ```bash
    docker compose exec backend npm run migrate:latest
    docker compose exec backend npm run seed:run
    ```
 
-5. **Access the application**
+4. **Access the application**
    - Frontend: http://localhost
    - Backend API: http://localhost:9000
+   - API Documentation: http://localhost/documentation (or http://localhost:9000/api/documentation)
    - FastAPI Docs: http://localhost:8000/docs
-   - Swagger UI: http://localhost:9000/api/documentation
 
 ## Docker Commands
 
@@ -102,16 +87,7 @@ docker compose exec backend npm run migrate up
 # Run seeds
 docker compose exec backend npm run seed:run
 
-# Fresh migration
-docker compose exec backend npm run migrate:fresh
-```
-
-### Access service shell
-```bash
-# Backend shell
-docker compose exec backend sh
-
-# Database shell
+# Access database shell
 docker compose exec postgres psql -U postgres -d predictive_maintenance
 ```
 
@@ -149,44 +125,34 @@ For local development without Docker, you need to configure each repository's `.
 4. **FastAPI (hapi-capstone folder)**
    ```bash
    cd hapi-capstone
-### Docker Deployment (Root `.env`)
+   pip install -r requirements.txt
+   python fastapi_main.py
+   ```
 
-For Docker deployment, only configure the root `.env` file with these key variables:
+5. **Frontend (Predicteraa folder)**
+   ```bash
+   cd Predicteraa
+   npm install
+   npm run dev
+   ```
 
-- `POSTGRES_USER`: Database user (default: postgres)
-- `POSTGRES_PASSWORD`: Database password (**change this!**)
-- `POSTGRES_DB`: Database name (default: predictive_maintenance)
-- `ACCESS_TOKEN_KEY`: JWT access token secret (**change this!**)
-- `REFRESH_TOKEN_KEY`: JWT refresh token secret (**change this!**)
-- `ACCESS_TOKEN_AGE`: Token expiration in seconds (default: 3600)
-- `VITE_API_BASE_URL`: API host for frontend (default: localhost)
-- `VITE_API_PORT`: API port for frontend (default: 9000)
-- `GEMINI_API_KEY`: Google Gemini API key (**required for AI agent**)
-- `OPENROUTER_API_KEY`: OpenRouter API key (**required for AI agent**)
+**Note:** For local development, configure individual `.env` files in each repository folder (`hapi-capstone/.env` and `Predicteraa/.env`) instead of the root `.env` file.
 - `NODE_ENV`: Environment mode (default: production)
+- `HOST`: Backend host (default: 0.0.0.0)
+- `PORT`: Backend port (default: 9000)
+- `FASTAPIPROTOCOL`: FastAPI protocol (default: http)
+- `FASTAPIHOST`: FastAPI host (default: fastapi)
+- `FASTAPIPORT`: FastAPI port (default: 8000)
 
 ### Local Development
 
 For local development, configure individual repository `.env` files:
 - `hapi-capstone/.env`: Backend configuration (see `hapi-capstone/.env.example`)
-- `Predicteraa/.env`: Frontend configuration (see `Predicteraa/.env.example`
-   npm run dev
-   ```
-
-## Environment Variables
-
-Key environment variables (see `.env.example` for full list):
-
-- `POSTGRES_USER`: Database user
-- `POSTGRES_PASSWORD`: Database password
-- `POSTGRES_DB`: Database name
-- `ACCESS_TOKEN_KEY`: JWT access token secret
-- `REFRESH_TOKEN_KEY`: JWT refresh token secret
-- `NODE_ENV`: Environment (development/production)
+- `Predicteraa/.env`: Frontend configuration (see `Predicteraa/.env.example`)
 
 ## API Documentation
 
-- Swagger UI: http://localhost:9000/documentation
+- Swagger UI: http://localhost/documentation (or http://localhost:9000/documentation)
 - FastAPI Docs: http://localhost:8000/docs
 
 ## Ports
