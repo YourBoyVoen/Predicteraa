@@ -79,27 +79,27 @@ export interface BulkDiagnosticsResponse {
 export const diagnosticsApi = {
   // POST /diagnostics/{machineId} - Run diagnostics for a machine
   runDiagnostics: async (machineId: number | string): Promise<PostDiagnosticResponse> => {
-    return httpClient.post<PostDiagnosticResponse>(`/diagnostics/${machineId}`);
+    return httpClient.post<PostDiagnosticResponse>(`/api/diagnostics/${machineId}`);
   },
 
   // GET /diagnostics/{machineId}/latest - Get latest diagnostic
   getLatest: async (machineId: number | string): Promise<LatestDiagnosticResponse> => {
-    return httpClient.get<LatestDiagnosticResponse>(`/diagnostics/${machineId}/latest`);
+    return httpClient.get<LatestDiagnosticResponse>(`/api/diagnostics/${machineId}/latest`);
   },
 
   // GET /diagnostics/{machineId}/history - Get diagnostic history
   getHistory: async (machineId: number | string, limit?: number): Promise<DiagnosticHistoryResponse> => {
     const query = limit ? `?limit=${limit}` : '';
-    return httpClient.get<DiagnosticHistoryResponse>(`/diagnostics/${machineId}/history${query}`);
+    return httpClient.get<DiagnosticHistoryResponse>(`/api/diagnostics/${machineId}/history${query}`);
   },
 
   // GET /diagnostics - Get latest diagnostics for all machines
   getAllLatest: async (): Promise<DiagnosticHistoryResponse> => {
-    return httpClient.get<DiagnosticHistoryResponse>('/diagnostics');
+    return httpClient.get<DiagnosticHistoryResponse>('/api/diagnostics');
   },
 
   // POST /diagnostics/bulk - Run diagnostics for all machines
   runBulkDiagnostics: async (): Promise<BulkDiagnosticsResponse> => {
-    return httpClient.post<BulkDiagnosticsResponse>('/diagnostics/bulk');
+    return httpClient.post<BulkDiagnosticsResponse>('/api/diagnostics/bulk');
   },
 };

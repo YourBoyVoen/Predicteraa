@@ -60,7 +60,7 @@ NOTE: Move the files in deployment folder to the directory that contains both re
    - Frontend: http://localhost
    - Backend API: http://localhost:9000
    - FastAPI Docs: http://localhost:8000/docs
-   - Swagger UI: http://localhost:9000/documentation
+   - Swagger UI: http://localhost:9000/api/documentation
 
 ## Docker Commands
 

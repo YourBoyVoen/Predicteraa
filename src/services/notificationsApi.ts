@@ -36,17 +36,17 @@ export interface PostNotificationResponse {
 export const notificationsApi = {
   // POST /notifications - Create a new notification
   addNotification: async (payload: PostNotificationPayload): Promise<PostNotificationResponse> => {
-    return httpClient.post<PostNotificationResponse>('/notifications', payload);
+    return httpClient.post<PostNotificationResponse>('/api/notifications', payload);
   },
   
   // GET /notifications - Get notifications
   getNotifications: async (): Promise<NotificationItem[]> => {
-    const response = await httpClient.get<NotificationsResponse>('/notifications');
+    const response = await httpClient.get<NotificationsResponse>('/api/notifications');
     return response.data.notifications;
   },
 
   // DELETE /notifications/{id} - Delete/dismiss a notification
   deleteNotification: async (id: string): Promise<{ status: string; message: string }> => {
-    return httpClient.delete<{ status: string; message: string }>(`/notifications/${id}`);
+    return httpClient.delete<{ status: string; message: string }>(`/api/notifications/${id}`);
   },
 };

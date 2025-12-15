@@ -47,17 +47,17 @@ export interface LatestSensorDataResponse {
 export const sensorsApi = {
   // POST /sensors - Add sensor data
   create: async (payload: PostSensorDataPayload): Promise<PostSensorDataResponse> => {
-    return httpClient.post<PostSensorDataResponse>('/sensors', payload);
+    return httpClient.post<PostSensorDataResponse>('/api/sensors', payload);
   },
 
   // GET /sensors/{machineId}/history - Get sensor data history
   getHistory: async (machineId: number | string, limit?: number): Promise<SensorDataHistoryResponse> => {
     const query = limit ? `?limit=${limit}` : '';
-    return httpClient.get<SensorDataHistoryResponse>(`/sensors/${machineId}/history${query}`);
+    return httpClient.get<SensorDataHistoryResponse>(`/api/sensors/${machineId}/history${query}`);
   },
 
   // GET /sensors/{machineId}/latest - Get latest sensor data
   getLatest: async (machineId: number | string): Promise<LatestSensorDataResponse> => {
-    return httpClient.get<LatestSensorDataResponse>(`/sensors/${machineId}/latest`);
+    return httpClient.get<LatestSensorDataResponse>(`/api/sensors/${machineId}/latest`);
   },
 };
