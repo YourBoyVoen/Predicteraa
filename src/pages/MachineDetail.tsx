@@ -64,24 +64,36 @@ const MachineDetailPage: React.FC = () => {
       //   type: machineResponse.data.machine.type,
       // });
 
-      // Load sensor history
+    } catch (err) {
+      console.error("Error loading machine data:", err);
+      setError("Failed to load machine data");
+      setLoading(false);
+      return;
+    }
+
+    // Load sensor history (don't fail if no data)
+    try {
       const sensorResponse = await sensorsApi.getHistory(id, 20);
       const sortedSensorData = sensorResponse.data.sensorDataHistory
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setSensorData(sortedSensorData);
+    } catch (err) {
+      console.error("Error loading sensor data:", err);
+      setSensorData([]); // Set to empty array if no data
+    }
 
-      // Load diagnostic history
+    // Load diagnostic history (don't fail if no data)
+    try {
       const diagnosticResponse = await diagnosticsApi.getHistory(id, 20);
       const sortedDiagnosticData = diagnosticResponse.data.diagnostics
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setDiagnosticData(sortedDiagnosticData);
-
     } catch (err) {
-      console.error("Error loading machine data:", err);
-      setError("Failed to load machine data");
-    } finally {
-      setLoading(false);
+      console.error("Error loading diagnostic data:", err);
+      setDiagnosticData([]); // Set to empty array if no data
     }
+
+    setLoading(false);
   };
 
   const handleRunDiagnostics = async () => {
